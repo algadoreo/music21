@@ -235,7 +235,8 @@ class FiguredBassLine(object):
         '''
         bassObject.notationString = notationString
         c = bassObject.classes
-        if 'Note' in c:
+        #!---------- Added ability to parse rests ----------!
+        if 'Note' or 'Rest' in c:
             self._fbList.append((bassObject, notationString)) #a bass note, and a notationString
             addLyricsToBassNote(bassObject, notationString) 
         #!---------- Added to accommodate harmony.ChordSymbol and roman.RomanNumeral objects --------!     
