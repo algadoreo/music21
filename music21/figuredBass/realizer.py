@@ -87,8 +87,8 @@ def figuredBassFromStream(streamPart):
             
     '''
     sf = streamPart.flat
-    sfn = sf.notes
-    
+    sfn = sf.notesAndRests
+
     keyList = sf.getElementsByClass(key.Key)
     myKey = None
     if len(keyList) == 0:
@@ -117,11 +117,15 @@ def figuredBassFromStream(streamPart):
             fb._paddingLeft = paddingLeft
     
     for n in sfn:
-        if len(n.lyrics) > 0:
-            annotationString = ", ".join([x.text for x in n.lyrics])
-            fb.addElement(n, annotationString)
+        # Hack solution to deal with rests: replace all rests with a 'C0' (for now)
+        if 'Rest' not in n.classes:
+            if len(n.lyrics) > 0:
+                annotationString = ", ".join([x.text for x in n.lyrics])
+                fb.addElement(n, annotationString)
+            else:
+                fb.addElement(n)
         else:
-            fb.addElement(n)
+            fb.addElement(note.Note('C0', quarterLength = n.quarterLength))
     
     return fb
 
@@ -288,6 +292,10 @@ class FiguredBassLine(object):
             r = note.Rest(quarterLength = self._paddingLeft)
             bassLine.append(r)
         for (bassNote, unused_notationString) in self._fbList:
+            ''' The next chunk commented out because we can't put the rests back in just yet '''
+            # if bassNote.nameWithOctave == 'C0':
+            #     bassLine.append(note.Rest(quarterLength = bassNote.quarterLength))
+            # else:
             bassLine.append(bassNote)
         
         bassLine.makeNotation(inPlace=True, cautionaryNotImmediateRepeat=False)
@@ -316,7 +324,7 @@ class FiguredBassLine(object):
         else:
             currentMapping = checker.createOffsetMapping(bassLine)
         allKeys = sorted(currentMapping.keys())
-        bassLine = bassLine.flat.notes
+        bassLine = bassLine.flat.notes#AndRests
         bassNoteIndex = 0
         previousBassNote = bassLine[bassNoteIndex]
         bassNote = currentMapping[allKeys[0]][-1]
@@ -418,7 +426,7 @@ class FiguredBassLine(object):
                 c = item.classes
             except AttributeError:
                 continue
-            if 'Note' in c:
+            if 'Note' or 'Rest' in c:
                 break
             #!---------- Added to accommodate harmony.ChordSymbol and roman.RomanNumeral objects --------!
             if 'RomanNumeral' in c or 'ChordSymbol' in c: #and item.isClassOrSubclass(harmony.Harmony):
@@ -702,11 +710,21 @@ class Realization(object):
             for segmentIndex in range(len(self._segmentList)):
                 possibA = possibilityProgression[segmentIndex]
                 bassNote = self._segmentList[segmentIndex].bassNote
-                bassLine.append(copy.deepcopy(bassNote))  
+                #!---------- Check to see if it's actually a rest, indicated by a 'C0' ----------!
+                if bassNote.nameWithOctave == 'C0':
+                    bassLine.append(note.Rest(quarterLength = bassNote.quarterLength))
+                else:
+                #!---------- Original code: just add the note ----------!
+                    bassLine.append(copy.deepcopy(bassNote))
                 rhPitches = possibA[0:-1]                           
                 rhChord = chord.Chord(rhPitches)
                 rhChord.quarterLength = self._segmentList[segmentIndex].quarterLength
-                rightHand.append(rhChord)
+                #!---------- As above, check to see if it's actually a rest ----------!
+                if bassNote.nameWithOctave == 'C0':
+                    rightHand.append(note.Rest(quarterLength = bassNote.quarterLength))
+                else:
+                #!---------- Original code: just add the chord ----------!
+                    rightHand.append(rhChord)
             rightHand.insert(0.0, clef.TrebleClef())
             
             rightHand.makeNotation(inPlace=True, cautionaryNotImmediateRepeat=False)
@@ -727,12 +745,22 @@ class Realization(object):
             for segmentIndex in range(len(self._segmentList)):
                 possibA = possibilityProgression[segmentIndex]
                 bassNote = self._segmentList[segmentIndex].bassNote
-                bassLine.append(copy.deepcopy(bassNote))  
+                #!---------- Check to see if it's actually a rest, indicated by a 'C0' ----------!
+                if bassNote.nameWithOctave == 'C0':
+                    bassLine.append(note.Rest(quarterLength = bassNote.quarterLength))
+                else:
+                #!---------- Original code: just add the note ----------!
+                    bassLine.append(copy.deepcopy(bassNote))  
 
                 for partNumber in range(len(possibA) - 1):
                     n1 = note.Note(possibA[partNumber])
                     n1.quarterLength = self._segmentList[segmentIndex].quarterLength
-                    upperParts[partNumber].append(n1)
+                    #!---------- As above, check to see if it's actually a rest ----------!
+                    if bassNote.nameWithOctave == 'C0':
+                        upperParts[partNumber].append(note.Rest(quarterLength = bassNote.quarterLength))
+                    else:
+                    #!---------- Original code: just add the note ----------!
+                        upperParts[partNumber].append(n1)
                     
             for upperPart in upperParts:
                 upperPart.insert(0.0, upperPart.bestClef(True))
