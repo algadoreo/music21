@@ -167,7 +167,7 @@ class Handler(xml.sax.ContentHandler):
 
         # note and measure require loading in additional references
         if name == 'note':
-            self._mxObjs[name] = musicxmlMod.Note()      
+            self._mxObjs[name] = musicxmlMod.Note()
             # store a reference to the measure containing
             self._mxObjs[name].external['measure'] = self._mxObjs['measure']
             self._mxObjs[name].external['attributes'] = self._attributesObjLast
@@ -348,6 +348,21 @@ class Handler(xml.sax.ContentHandler):
 
         elif name == 'text':
             self._mxObjs['lyric'].text = self._currentTag.charData
+
+        elif name == 'figured-bass':
+            self._mxObjs['measure'].componentList.append(self._mxObjs['figured-bass'])
+
+        elif name == 'figure':
+            self._mxObjs['figured-bass'].figureObj = self._mxObjs['figure']
+
+        elif name == 'prefix':
+            self._mxObjs['figure'].figurePrefix = self._currentTag.charData
+
+        elif name == 'figure-number':
+            self._mxObjs['figure'].figureNumber = self._currentTag.charData
+
+        elif name == 'suffix':
+            self._mxObjs['figure'].figureSuffix = self._currentTag.charData
 
         elif name == 'trill-mark': 
             self._mxObjs['ornaments'].append(self._mxObjs['trill-mark'])

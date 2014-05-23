@@ -228,6 +228,11 @@ class TagLib(object):
         ('lyric', False, Lyric), 
         ('syllabic', True), 
         ('text', True),
+        ('figured-bass', False, FiguredBass),
+        ('figure', False, Figure),
+        ('prefix', True),
+        ('figure-number', True),
+        ('suffix', True),
         ('trill-mark', False, TrillMark), 
         ('mordent', False, Mordent), 
         ('inverted-mordent', False, InvertedMordent), 
@@ -2758,6 +2763,38 @@ class Lyric(MusicXMLElement):
         c.append(('syllabic', self.syllabic))
         # only filter when getting components
         c.append(('text', self.filterLyric(self.text)))
+        return c
+
+class FiguredBass(MusicXMLElement):
+    def __init__(self):
+        MusicXMLElement.__init__(self)
+        self._tag = 'figured-bass'
+
+        self.figureObj = None
+
+        self._crossReference['figureObj'] = ['figure']
+
+    def _getComponents(self):
+        c = []
+        c.append(self.figureObj)
+        return c
+
+class Figure(MusicXMLElement):
+    def __init__(self):
+        MusicXMLElement.__init__(self)
+        self._tag = 'figure'
+        self.figurePrefix = None
+        self.figureNumber = None
+        self.figureSuffix = None
+
+        #self.figuredBassList = []
+
+    def _getComponents(self):
+        c = []
+        c.append(('prefix', self.figurePrefix))
+        c.append(('figure-number', self.figureNumber))
+        c.append(('suffix', self.figureSuffix))
+        #c = c + self.figuredBassList
         return c
 
 

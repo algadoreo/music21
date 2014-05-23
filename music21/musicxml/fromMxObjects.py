@@ -520,7 +520,7 @@ def mxToTie(mxNote, inputM21=None):
 #-------------------------------------------------------------------------------
 # Lyrics
 
-def mxToLyric(mxLyric, inputM21=None):
+def mxToLyric(mxLyric, inputM21=None, figuredBass=False):
     '''
     Translate a MusicXML :class:`~music21.musicxml.mxObjects.Lyric` object to a 
     music21 :class:`~music21.note.Lyric` object.
@@ -552,24 +552,30 @@ def mxToLyric(mxLyric, inputM21=None):
         l = note.Lyric()
     else:
         l = inputM21
-
-    l.text = mxLyric.get('text')
     
-    
-    # This is new to account for identifiers
-    
-    number = mxLyric.get('number')
-    
-    if common.isNum(number):
-        l.number = number
+    if not figuredBass:
+        #!---------- Original code here: just regular lyrics ----------!
+        l.text = mxLyric.get('text')
+        
+        
+        # This is new to account for identifiers
+        
+        number = mxLyric.get('number')
+        
+        if common.isNum(number):
+            l.number = number
+        else:
+            l.number = 0  #If musicXML lyric number is not a number, set it to 0. This tells the caller of
+                            #mxToLyric that a new number needs to be given based on the lyrics context amongst other lyrics.
+            l.identifier = number
+        
+        # Used to be l.number = mxLyric.get('number')
+        
+        l.syllabic = mxLyric.get('syllabic')
     else:
-        l.number = 0  #If musicXML lyric number is not a number, set it to 0. This tells the caller of
-                        #mxToLyric that a new number needs to be given based on the lyrics context amongst other lyrics.
-        l.identifier = number
-    
-    # Used to be l.number = mxLyric.get('number')
-    
-    l.syllabic = mxLyric.get('syllabic')
+        #!---------- Added: inputting figured bass as lyrics ----------!
+        environLocal.printDebug('Rendering figured bass as lyric')
+        l.text = mxLyric.get('figure-number')
 
     if inputM21 is None:
         return l
@@ -2144,6 +2150,7 @@ def mxToMeasure(mxMeasure, spannerBundle=None, inputM21=None, lastMeasureInfo=No
     chordVoice = None # Sibelius 7.1 only puts a <voice> tag on the
                         # first note of a chord, so we need to make sure
                         # that we keep track of the last voice...
+    addFiguredBass = False
 
     for i in range(len(mxMeasure)):
         # try to get the next object for chord comparisons
@@ -2297,6 +2304,25 @@ def mxToMeasure(mxMeasure, spannerBundle=None, inputM21=None, lastMeasureInfo=No
             else:
                 environLocal.printDebug(['not handling barline that is neither left nor right', barline, barline.location])
 
+        elif isinstance(mxObj, mxObjects.FiguredBass):
+            '''
+            Since the <figured-bass> tag exists outside the note as per XML 3.0, all this section
+            does is store the figured bass object to be input as a lyric on the following note
+
+            The addFiguredBass is a flag letting the parser know the next note has a figured bass
+            '''
+            mxFiguredBass = mxObj
+            if isinstance(mxObjNext, mxObjects.Note):
+                mxNoteNext = mxObjNext
+            else:
+                mxNoteNext = None
+            
+            #if mxNoteNext is not None and (mxNoteNext.get('chord') and mxNoteNext.get('rest')) is False:
+                # so that here it is a properly placed figured bass (i.e. followed by just a note)
+            mxFigure = mxFiguredBass.get('figureObj')
+            environLocal.printDebug('Encountered figured bass')
+            addFiguredBass = True
+
         elif isinstance(mxObj, mxObjects.Note):
             mxNote = mxObj
             if isinstance(mxObjNext, mxObjects.Note):
@@ -2363,6 +2389,13 @@ def mxToMeasure(mxMeasure, spannerBundle=None, inputM21=None, lastMeasureInfo=No
                         n.lyrics.append(lyricObj)
                         currentLyricNumber += 1
                     nLast = n # update
+
+                    #!---------- Adding figured bass as lyrics ----------!
+                    if addFiguredBass:
+                        lyricObj = mxToLyric(mxFigure, figuredBass=True)
+                        n.lyrics.append(lyricObj)
+                        environLocal.printDebug('Figured bass added as lyric')
+                        addFiguredBass = False
 
 #                if mxNote.get('notationsObj') is not None:
 #                    for mxObjSub in mxNote.get('notationsObj'):
