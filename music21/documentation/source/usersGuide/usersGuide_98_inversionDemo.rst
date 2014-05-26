@@ -1,11 +1,10 @@
+.. _usersGuide_98_inversionDemo:
 .. code:: python
 
     from music21 import *
 
 .. code:: python
 
-    # ignore this
-    %load_ext music21.ipython21.ipExtension
 
 .. code:: python
 
@@ -185,9 +184,3 @@
 
 .. image:: usersGuide_98_inversionDemo_files/_fig_15.png
 
-
-In[ ]:
-
-.. code:: python
-
-    

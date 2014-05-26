@@ -29,7 +29,6 @@ from music21 import base
 
 from music21 import bar
 from music21 import common
-#from music21 import classCache
 from music21 import clef
 from music21 import chord
 from music21 import defaults
@@ -465,7 +464,8 @@ class Stream(base.Music21Object):
                 raise KeyError('provided class (%s) does not match any contained Objects' % key)
 
 
-#     def __del__(self):
+#    def __del__(self):
+#        self.cache = {}
 #         #environLocal.printDebug(['calling __del__ from Stream', self])
 #         # this is experimental
 #         # this did not offer improvements, and raised a number of errors
@@ -1224,6 +1224,15 @@ class Stream(base.Music21Object):
                     newValue = copy.deepcopy(self._derivation)
                     newValue.client = new
                     setattr(new, name, newValue)
+            elif name == 'streamStatus':
+                # update the client
+                if self.streamStatus is not None:
+                    #storedClient = self.streamStatus.client # should be self
+                    #self.streamStatus.client = None
+                    newValue = copy.deepcopy(self.streamStatus)
+                    newValue.client = new
+                    setattr(new, name, newValue)
+                    #self.streamStatus.client = storedClient
             elif name == '_cache' or name == 'analysisData':
                 continue # skip for now
             elif name == '_elements':
@@ -1235,8 +1244,10 @@ class Stream(base.Music21Object):
                     # user here to provide new offset
                     #new.insert(e.getOffsetBySite(old), newElement,
                     #           ignoreSort=True)
-                    new._insertCore(e.getOffsetBySite(old),
-                                copy.deepcopy(e, memo),
+                    offset = e.getOffsetBySite(old)
+                    newElement = copy.deepcopy(e, memo)
+                    new._insertCore(offset,
+                                newElement,
                                 ignoreSort=True)
             elif name == '_endElements':
                 # must manually add elements to
@@ -2024,9 +2035,9 @@ class Stream(base.Music21Object):
             keySignatures = sLeft.getKeySignatures(searchContext=searchContext)
             if len(keySignatures) > 0:
                 sRight.keySignature = copy.deepcopy(keySignatures[0])
-            clefs = sLeft.getClefs(searchContext=searchContext)
-            if len(clefs) > 0:
-                sRight.clef = copy.deepcopy(clefs[0])
+            endClef = sLeft.getContextByClass('Clef')
+            if endClef > 0:
+                sRight.clef = copy.deepcopy(endClef)
 
         if (quarterLength > sLeft.highestTime): # nothing to do
             return sLeft, sRight
@@ -2131,34 +2142,6 @@ class Stream(base.Music21Object):
         return self._recurseRepr(self, addBreaks=False, addIndent=False)
 
 
-
-    #---------------------------------------------------------------------------
-    # temporary storage
-    def unwrapWeakref(self):
-        '''
-        Overridden method for unwrapping all Weakrefs.
-        '''
-        self._derivation.unwrapWeakref()
-        # call base method: this gets defined contexts and active site
-        base.Music21Object.unwrapWeakref(self)
-        # for contained objects that have weak refs
-        # this presently is not a weakref but in case of future changes
-#         if common.isWeakref(self.flattenedRepresentationOf):
-#             post = common.unwrapWeakref(objRef)
-#             self.flattenedRepresentationOf = post
-
-
-    def wrapWeakref(self):
-        '''
-        Overridden method for unwrapping all Weakrefs.
-        '''
-        # call base method: this gets defined contexts and active site
-        base.Music21Object.wrapWeakref(self)
-        if self._derivation is not None:
-            self._derivation.wrapWeakref()
-#         if not common.isWeakref(self.flattenedRepresentationOf):
-#             post = common.wrapWeakref(objRef)
-#             self.flattenedRepresentationOf = post
 
     #---------------------------------------------------------------------------
     # display methods; in the same manner as show() and write()
@@ -2453,15 +2436,6 @@ class Stream(base.Music21Object):
         if returnList is False:
             found.isSorted = self.isSorted
 
-        # to use class cache, class must be provided as a string,
-        # and there must be only one class
-#         if canUseClassCache:
-#             if self._cache['classCache'] is None:
-#                 self._cache['classCache'] = classCache.ClassCache()
-#                 self._cache['classCache'].load(self)
-#             found = self._cache['classCache'].getElementsByClass(found,
-#                                               classFilterList)
-#             return found
 
         #found.show('t')
         # need both _elements and _endElements
@@ -3800,13 +3774,13 @@ class Stream(base.Music21Object):
         for className in classFilterList:
             if className in [Measure or 'Measure']: # do not redo
                 continue
-            for e in self.getElementsByClass(className):
+            for e in self.getElementsByClass(className, returnStreamSubClass='list'):
                 #environLocal.printDebug(['calling measure offsetMap(); e:', e])
                 # NOTE: if this is done on Notes, this can take an extremely
                 # long time to process
                 # -1 here is a reverse sort, where oldest objects are returned
                 # first
-                m = e.getContextByClass(Measure, sortByCreationTime=-1,
+                m = e.getContextByClass('Measure', sortByCreationTime=-1,
                     prioritizeActiveSite=False)
                 if m is None:
                     continue
@@ -4188,6 +4162,8 @@ class Stream(base.Music21Object):
 
     def bestClef(self, allowTreble8vb = False):
         '''
+        TODO: Move to Clef
+        
         Returns the clef that is the best fit for notes and chords found in this Stream.
 
         This does not automatically get a flat representation of the Stream.
@@ -6740,16 +6716,18 @@ class Stream(base.Music21Object):
                         yield e
 
 
-    def _yieldElementsUpward(self, memo, streamsOnly=False,
+    def _yieldElementsUpward(self, memo=None, streamsOnly=False,
                              skipDuplicates=True, classFilter=[]):
-        '''Y
-        ield all containers (Stream subclasses), including self, and going upward.
+        '''
+        Yield all containers (Stream subclasses), including self, and going upward.
 
         Note: on first call, a new, fresh memo list must be provided; 
         otherwise, values are retained from one call to the next.
         '''
         # TODO: add support for filter list
         # TODO: add add end elements
+        if memo is None:
+            memo = []
 
         # must exclude spanner storage, as might be found
         if id(self) not in memo and 'SpannerStorage' not in self.classes:
@@ -6938,9 +6916,11 @@ class Stream(base.Music21Object):
         47.0
         '''
 #         environLocal.printDebug(['_getHighestTime', 'isSorted', self.isSorted, self])
+        # remove cache -- durations might change...
         if 'HighestTime' in self._cache and self._cache["HighestTime"] is not None:
             pass  # return cache unaltered
         elif len(self._elements) == 0:
+        #if len(self._elements) == 0:
             self._cache["HighestTime"] = 0.0
             return 0.0
         else:
@@ -7071,9 +7051,9 @@ class Stream(base.Music21Object):
         '''
         if self._unlinkedDuration is not None:
             return self._unlinkedDuration
-        elif 'Duration' in self._cache and self._cache["Duration"] is not None:
+        #elif 'Duration' in self._cache and self._cache["Duration"] is not None:
             #environLocal.printDebug(['returning cached duration'])
-            return self._cache["Duration"]
+        #    return self._cache["Duration"]
         else:
             #environLocal.printDebug(['creating new duration based on highest time'])
             self._cache["Duration"] = duration.Duration()
@@ -8483,18 +8463,6 @@ class Stream(base.Music21Object):
 
         >>> len(a.pitches)
         104
-
-        Pitch objects are also retrieved when stored directly on a Stream.
-
-
-        >>> pitch1 = pitch.Pitch()
-        >>> st1 = stream.Stream()
-        >>> st1.append(pitch1)
-        >>> foundPitches = st1.pitches
-        >>> len(foundPitches)
-        1
-        >>> foundPitches[0] is pitch1
-        True
 
         Chords get their pitches found as well:
 

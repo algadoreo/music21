@@ -14,101 +14,82 @@ Convert a music21 object into JSON and send it to the browser for music21j to us
 '''
 import unittest
 
+from music21.exceptions21 import Music21Exception
 from music21 import freezeThaw
 from music21 import stream
 
-def fromObject(thisObject, mode='txt'):
+supportedDisplayModes = [
+    'html',
+    'jsbody',
+    'jsbodyScript',
+    'json'
+]
+
+
+def fromObject(thisObject, mode='html'):
     '''
     returns a string of data for a given Music21Object such as a Score, Note, etc. that
     can be displayed in a browser using the music21j package.  Called by .show('vexflow').
     
     >>> n = note.Note('C#4')
-    >>> print(vexflow.toMusic21j.fromObject(n))
-            <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-        <html xmlns="http://www.w3.org/1999/xhtml">
-        <head>
-            <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-            <!-- for MSIE 10 on Windows 8 -->
-            <meta http-equiv="X-UA-Compatible" content="requiresActiveX=true"/>
-            <title>Music21 Fragment</title>
-            <script data-main='http://web.mit.edu/music21/music21j/src/music21' src='http://web.mit.edu/music21/music21j/ext/require/require.js'></script>
-            <script>
-                require(['music21'], function() {
-                    var pickleIn = '{"m21Version": {"py/tuple": [1, 9, 2]}, "stream": {"_mutable": true, "_activeSite": null, "xPosition": null, "' + 
-        '_priority": 0, "_elements": [], "_cache": {}, "definesExplicitPageBreaks": false, "_unlinkedDuration": null, "' + 
-        'id": ..., "_duration": null, "py/object": "music21.stream.Stream", "streamStatus": {"py/object": "music' + 
-        '21.stream.streamStatus.StreamStatus", "_enharmonics": null, "_dirty": null, "_concertPitch": null, "_accidenta' + 
-        'ls": null, "_ties": null, "_rests": null, "_ornaments": null, "_client": null, "_beams": null, "_measures": nu' + 
-        'll}, "sites": {"py/object": "music21.base.Sites", "_lastOffset": null, "_siteIndex": 1, "_definedContexts": {}' + 
-        ', "_lastID": -1, "containedById": ..., "_locationKeys": []}, "py/seq": [], "isFlat": true, "autoSort": ' + 
-        'true, "_storedElementOffsetTuples": [{"py/tuple": [{"lyrics": [], "_notehead": "normal", "_volume": {"py/objec' + 
-        't": "music21.volume.Volume", "_parent": {"py/id": 6}, "velocityIsRelative": true, "_cachedRealized": null, "_v' + 
-        'elocity": null}, "_activeSite": null, "xPosition": null, "_priority": 0, "pitch": {"py/object": "music21.pitch' + 
-        '.Pitch", "_octave": 4, "groups": {"py/object": "music21.base.Groups", "py/seq": []}, "_activeSiteId": null, "_' + 
-        'overridden_freq440": null, "_step": "C", "sites": {"py/object": "music21.base.Sites", "_lastOffset": null, "_s' + 
-        'iteIndex": 1, "_definedContexts": {"None": {"py/object": "music21.base.Site", "obj": null, "globalSiteIndex": ' + 
-        '98, "classString": null, "siteIndex": 0, "isDead": false, "offset": 0.0}}, "_lastID": -1, "containedById": ...' + 
-        '..., "_locationKeys": [null]}, "implicitAccidental": false, "_classes": null, "_activeSite": null, "_accid' + 
-        'ental": {"py/object": "music21.pitch.Accidental", "_modifier": "#", "_alter": 1.0, "displayLocation": "normal"' + 
-        ', "_displayType": "normal", "displaySize": "full", "_name": "sharp", "_displayStatus": null, "displayStyle": "' + 
-        'normal"}, "hideObjectOnPrint": false, "_priority": 0, "fundamental": null, "id": ..., "_microtone": {"p' + 
-        'y/object": "music21.pitch.Microtone", "_harmonicShift": 1, "_centShift": 0}, "defaultOctave": 4, "_idLastDeepC' + 
-        'opyOf": ..., "_fullyQualifiedClasses": null, "_duration": {"py/id": 8}, "xPosition": null}, "expression' + 
-        's": [], "id": ..., "_duration": {"py/object": "music21.duration.Duration", "_componentsNeedUpdating": f' + 
-        'alse, "_cachedIsLinked": true, "_qtrLength": 1.0, "_components": [{"py/object": "music21.duration.DurationUnit' + 
-        '", "_type": "quarter", "_componentsNeedUpdating": false, "_qtrLength": 1.0, "_tuplets": {"py/tuple": []}, "_li' + 
-        'nk": true, "_typeNeedsUpdating": false, "_quarterLengthNeedsUpdating": false, "_dots": [0]}], "_typeNeedsUpdat' + 
-        'ing": false, "_quarterLengthNeedsUpdating": false, "linkage": "tie"}, "py/object": "music21.note.Note", "_note' + 
-        'headParenthesis": false, "sites": {"py/object": "music21.base.Sites", "_lastOffset": null, "_siteIndex": 6, "_' + 
-        'definedContexts": {}, "_lastID": -1, "containedById": ..., "_locationKeys": []}, "_editorial": null, "t' + 
-        'ie": null, "_noteheadFill": "default", "beams": {"py/object": "music21.beam.Beams", "feathered": false, "beams' + 
-        'List": []}, "_classes": ["Note", "NotRest", "GeneralNote", "Music21Object", "object"], "groups": {"py/object":' + 
-        ' "music21.base.Groups", "py/seq": []}, "_fullyQualifiedClasses": null, "articulations": [], "_activeSiteId": n' + 
-        'ull, "hideObjectOnPrint": false, "_stemDirection": "unspecified", "_idLastDeepCopyOf": ...}, 0.0]}], "_' + 
-        'atSoundingPitch": "unknown", "_classes": ["Stream", "Music21Object", "object"], "groups": {"py/object": "music' + 
-        '21.base.Groups", "py/seq": []}, "_fullyQualifiedClasses": null, "isSorted": false, "hideObjectOnPrint": false,' + 
-        ' "_activeSiteId": null, "flattenedRepresentationOf": null, "_endElements": [], "_derivation": {"py/object": "m' + 
-        'usic21.derivation.Derivation", "_clientId": null, "_client": null, "_originId": null, "_origin": null, "_metho' + 
-        'd": null}, "definesExplicitSystemBreaks": false, "_idLastDeepCopyOf": ...}}';
-                    var jpc = new music21.jsonPickle.Converter();
-                    streamObj = jpc.run(pickleIn);
-                    streamObj.renderOptions.events.resize = "reflow";
-                    streamObj.appendNewCanvas();
-                });
-            </script>
+    >>> #_DOCS_SHOW print(vexflow.toMusic21j.fromObject(n))
+    <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+    <html xmlns="http://www.w3.org/1999/xhtml">
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+        <!-- for MSIE 10 on Windows 8 -->
+        <meta http-equiv="X-UA-Compatible" content="requiresActiveX=true"/>
+        <title>Music21 Fragment</title>
+        <script data-main='http://web.mit.edu/music21/music21j/src/music21' src='http://web.mit.edu/music21/music21j/ext/require/require.js'></script>
+        <script>
+            require(['music21'], function() {
+                var pickleIn = '{"m21Version": {"py/tuple": [1, 9, 2]}, "stream": {"_mutable": true, "_activeSite": null, "xPosition": null, "' + 
+    '_priority": 0, "_elements": [], "_cache": {}, "definesExplicitPageBreaks": false, "_unlinkedDuration": null, "' + 
+    'id": ..., "_duration": null, "py/object": "music21.stream.Stream", "streamStatus": {"py/object": "music' + 
+    '21.stream.streamStatus.StreamStatus", "_enharmonics": null, "_dirty": null, "_concertPitch": null, "_accidenta' + 
+    'ls": null, "_ties": null, "_rests": null, "_ornaments": null, "_client": null, "_beams": null, "_measures": nu' + 
+    ...
+    'd": null}, "definesExplicitSystemBreaks": false, "_idLastDeepCopyOf": ...}}';
+                var jpc = new music21.jsonPickle.Converter();
+                streamObj = jpc.run(pickleIn);
+                streamObj.renderOptions.events.resize = "reflow";
+                streamObj.appendNewCanvas();
+            });
+        </script>
     <BLANKLINE>
-        </head>
-        <body>
-        </body>
-        </html>
+    </head>
+    <body>
+    </body>
+    </html>
     '''
     conv = VexflowPickler()
     conv.mode = mode
     return conv.fromObject(thisObject)
 
 class VexflowPickler(object):
-    template = '''<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+    templateHtml = '''<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
     <html xmlns="http://www.w3.org/1999/xhtml">
     <head>
         <meta http-equiv="content-type" content="text/html; charset=utf-8" />
         <!-- for MSIE 10 on Windows 8 -->
         <meta http-equiv="X-UA-Compatible" content="requiresActiveX=true"/>
         <title>{title}</title>
-        <script data-main='{m21URI}' src='{requireURI}'></script>
-        <script>
-            require(['music21'], function() {{
-                var pickleIn = {pickleOutput};
-                var jpc = new music21.jsonPickle.Converter();
-                streamObj = jpc.run(pickleIn);
-                {callback}
-            }});
-        </script>
-    
+        {loadM21Template}
+        {jsBodyScript}
     </head>
     <body>
     </body>
     </html>
     '''
+    jsBodyScript = '''<script>\n{jsBody}\n</script>'''
+    jsBody = '''require(['music21'], function() {{
+                var pickleIn = {pickleOutput};
+                var jpc = new music21.jsonPickle.Converter();
+                streamObj = jpc.run(pickleIn);
+                {callback}
+            }});'''
+    loadM21Template = '''<script data-main='{m21URI}' src='{requireURI}'></script>'''
+
     def __init__(self):
         self.defaults = {
             'pickleOutput' : '{"py/object": "hello"}',
@@ -116,10 +97,12 @@ class VexflowPickler(object):
             'requireURI' :'http://web.mit.edu/music21/music21j/ext/require/require.js',
             'callback' :'streamObj.renderOptions.events.resize = "reflow";\n\t\t\tstreamObj.appendNewCanvas();'
         }
-
+        self.mode = 'html'
     
         
-    def fromObject(self, thisObject, mode='txt'):
+    def fromObject(self, thisObject, mode=None):
+        if mode is None:
+            mode = self.mode
         if (thisObject.isStream is False):
             retStream = stream.Stream()
             retStream.append(thisObject)
@@ -134,7 +117,112 @@ class VexflowPickler(object):
             allJSONList.append('\'' + jsonString[i:i+chunkSize] + '\'')
         return ' + \n    '.join(allJSONList)
     
-    def fromStream(self,thisStream, mode='txt'):
+    def getLoadTemplate(self, urls=None):
+        '''
+        Gets the <script> tag for loading music21 from require.js
+        
+        >>> vfp = vexflow.toMusic21j.VexflowPickler()
+        >>> vfp.getLoadTemplate()
+        "<script data-main='http://web.mit.edu/music21/music21j/src/music21' src='http://web.mit.edu/music21/music21j/ext/require/require.js'></script>"
+
+        >>> d = {'m21URI': 'file:///tmp/music21', 'requireURI': 'http://requirejs.com/require.js'}
+        >>> vfp.getLoadTemplate(d)
+        "<script data-main='file:///tmp/music21' src='http://requirejs.com/require.js'></script>"
+        '''
+        
+        if urls is None:
+            urls = self.defaults
+        loadM21formatted = self.loadM21Template.format(m21URI = urls['m21URI'], 
+                                                       requireURI = urls['requireURI'],)
+        return loadM21formatted
+    
+    def getJSBodyScript(self, dataSplit, defaults = None):
+        '''
+        Get the <script>...</script> tag to render the JSON
+        
+        >>> vfp = vexflow.toMusic21j.VexflowPickler()
+        >>> print(vfp.getJSBodyScript('{"hi": "hello"}'))
+           <script>
+                require(['music21'], function() {
+                    var pickleIn = {"hi": "hello"};
+                    var jpc = new music21.jsonPickle.Converter();
+                    streamObj = jpc.run(pickleIn);
+                    streamObj.renderOptions.events.resize = "reflow";
+                streamObj.appendNewCanvas();
+                });
+            </script>        
+        '''
+        if defaults is None:
+            defaults = self.defaults
+        jsBody = self.getJSBody(dataSplit, defaults)
+        jsBodyScript = self.jsBodyScript.format(jsBody = jsBody)
+        return jsBodyScript;
+
+    def getJSBody(self, dataSplit, defaults = None):
+        '''
+        Get the javascript code without the <script> tags to render the JSON
+        
+        >>> vfp = vexflow.toMusic21j.VexflowPickler()
+        >>> print(vfp.getJSBody('{"hi": "hello"}'))
+                require(['music21'], function() {
+                    var pickleIn = {"hi": "hello"};
+                    var jpc = new music21.jsonPickle.Converter();
+                    streamObj = jpc.run(pickleIn);
+                    streamObj.renderOptions.events.resize = "reflow";
+                streamObj.appendNewCanvas();
+                });
+        '''
+        if defaults is None:
+            d = self.defaults
+        else:
+            d = defaults
+        jsBody = self.jsBody.format(pickleOutput = dataSplit,
+                                    callback = d['callback'])
+        return jsBody;
+    
+    def getHTML(self, dataSplit, title=None, defaults=None):
+        '''
+        Get the complete HTML page to pass to the browser:
+        
+        >>> vfp = vexflow.toMusic21j.VexflowPickler()
+        >>> print(vfp.getHTML('{"hi": "hello"}', 'myPiece'))
+           <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+                <html xmlns="http://www.w3.org/1999/xhtml">
+                <head>
+            <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+            <!-- for MSIE 10 on Windows 8 -->
+            <meta http-equiv="X-UA-Compatible" content="requiresActiveX=true"/>
+            <title>myPiece</title>
+            <script data-main='http://web.mit.edu/music21/music21j/src/music21' src='http://web.mit.edu/music21/music21j/ext/require/require.js'></script>
+            <script>
+            require(['music21'], function() {
+                            var pickleIn = {"hi": "hello"};
+                            var jpc = new music21.jsonPickle.Converter();
+                            streamObj = jpc.run(pickleIn);
+                            streamObj.renderOptions.events.resize = "reflow";
+                        streamObj.appendNewCanvas();
+                        });
+            </script>
+            </head>
+            <body>
+            </body>
+            </html>
+        '''
+        if defaults is None:
+            d = self.defaults
+        else:
+            d = defaults
+        loadM21Formatted = self.getLoadTemplate(d)
+        jsBodyScript = self.getJSBodyScript(dataSplit, d)
+        formatted = self.templateHtml.format(title = title, 
+                                                 loadM21Template=loadM21Formatted,
+                                                 jsBodyScript=jsBodyScript)
+        return formatted
+    
+    def fromStream(self, thisStream, mode=None):
+        if mode is None:
+            mode = self.mode
+
         if (thisStream.metadata is not None and thisStream.metadata.title != ""):
             title = thisStream.metadata.title
         else:
@@ -142,10 +230,21 @@ class VexflowPickler(object):
         sf = freezeThaw.StreamFreezer(thisStream)
         data = sf.writeStr(fmt='jsonpickle')
         dataSplit = self.splitLongJSON(data)
-        d = self.defaults
-        formatted = self.template.format(title = title, pickleOutput = dataSplit, 
-                                    m21URI = d['m21URI'], requireURI = d['requireURI'], callback = d['callback'])
-        return formatted
+        if mode == 'json':
+            return data
+        elif mode == 'jsonSplit':
+            return dataSplit
+        elif mode == 'jsbody':
+            return self.getJSBody(dataSplit)
+        elif mode == 'jsbodyScript':
+            return self.getJSBodyScript(dataSplit)
+        elif mode == 'html':
+            return self.getHTML(dataSplit, title)
+        else:
+            raise VexflowToM21JException("Cannot deal with mode: %r" % mode)
+
+class VexflowToM21JException(Music21Exception):
+    pass
 
 class Test(unittest.TestCase):
     

@@ -31,7 +31,7 @@ from music21 import pitch
 from music21 import beam
 from music21 import tie
 from music21 import volume
-from music21.base import SlottedObject
+from music21.common import SlottedObject
 
 
 from music21 import environment
@@ -320,6 +320,7 @@ class GeneralNote(base.Music21Object):
         if (self.duration.quarterLength == 0 and
             len(self.duration._components) == 0):
             self.duration.addDurationUnit(duration.DurationUnit('quarter'))
+            self.duration.updateQuarterLength()
 
         self.lyrics = [] # a list of lyric objects
         self.expressions = []
@@ -881,9 +882,6 @@ class Note(NotRest):
     # Accepts an argument for pitch
     def __init__(self, *arguments, **keywords):
         NotRest.__init__(self, **keywords)
-        if 'duration' not in keywords:
-            keywords['duration'] = self.duration
-
         if len(arguments) > 0:
             if isinstance(arguments[0], pitch.Pitch):
                 self.pitch = arguments[0]

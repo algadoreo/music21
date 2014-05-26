@@ -22,6 +22,8 @@ import time
 import hashlib
 import random
 import inspect
+import weakref
+
 
 from music21 import exceptions21
 from music21.ext import six
@@ -177,9 +179,12 @@ def findSubConverterForFormat(fmt):
 
 def findFormat(fmt):
     '''
-    Given a format defined either by a format name or
-    an extension, return the format name as well as 
+    Given a format defined either by a format name, abbreviation, or
+    an extension, return the regularized format name as well as 
     the output exensions.
+    
+    May 2014 -- All but the first element of the tuple are deprecated for use, since
+    the extension can vary by subconverter (e.g., lily.png)
 
     Note that .mxl and .mx are only considered MusicXML input formats.
 
@@ -191,6 +196,8 @@ def findFormat(fmt):
     >>> common.findFormat('musicxml')
     ('musicxml', '.xml')
     >>> common.findFormat('lily')
+    ('lilypond', '.ly')
+    >>> common.findFormat('lily.png')
     ('lilypond', '.ly')
     >>> common.findFormat('humdrum')
     ('humdrum', None)
@@ -215,10 +222,11 @@ def findFormat(fmt):
     ('musicxml', '.xml')
 
     
-    #     >>> common.findFormat('png')
-    #     ('musicxml.png', '.png')
-    #     >>> common.findFormat('ipython')
-    #     ('ipython', '.png')
+    #>>> common.findFormat('png')
+    #('musicxml.png', '.png')
+    
+    #>>> common.findFormat('ipython')
+    #('ipython', '.png')
     #     >>> common.findFormat('ipython.png')
     #     ('ipython', '.png')
     #     >>> common.findFormat('musicxml.png')
@@ -245,17 +253,30 @@ def findFormat(fmt):
     if fmt.startswith('.'):
         fmt = fmt[1:] # strip .
     foundSc = None
+    
+    formatList = fmt.split('.')
+    fmt = formatList[0]
+    if len(formatList) > 1:
+        unused_subformats = formatList[1:]
+    else:
+        unused_subformats = []
+        
     for sc in subConverterList():
         extensions = sc.registerInputExtensions
         for ext in extensions:
             if fmt == ext:
                 foundSc = sc
                 break
-        formats = sc.registerFormats
+        if foundSc is not None:
+            break
+        formats = sc.registerFormats        
         for scFormat in formats:
             if fmt == scFormat:
                 foundSc = sc
                 break
+        if foundSc is not None:
+            break
+
     if foundSc is None:
         return (None, None)
     else:
@@ -1925,13 +1946,11 @@ def pitchList(pitchList):
 def wrapWeakref(referent):
     '''
     utility function that wraps objects as weakrefs but does not wrap
-    already wrapped objects
+    already wrapped objects; also prevents wrapping the unwrapable "None" type, etc.
     '''
-    import weakref
     #if type(referent) is weakref.ref:
 #     if isinstance(referent, weakref.ref):
 #         return referent
-
     try:
         return weakref.ref(referent)
     # if referent is None, will raise a TypeError
@@ -1962,7 +1981,6 @@ def unwrapWeakref(referent):
     >>> common.unwrapWeakref(a2.strong) is common.unwrapWeakref(a2.weak)
     True
     '''
-    import weakref
     if type(referent) is weakref.ref:
         return referent()
     else:
@@ -1984,7 +2002,6 @@ def isWeakref(referent):
     >>> common.isWeakref(common.wrapWeakref(a1))
     True
     '''
-    import weakref
     if type(referent) is weakref.ref:
         return True
     return False
@@ -2138,6 +2155,30 @@ class SingletonCounter(object):
         _singletonCounter['value'] += 1
         return post
 
+#-------------------------------------------------------------------------------
+class SlottedObject(object):
+    r'''
+    Provides template for classes implementing slots.
+    '''
+    
+    ### CLASS VARIABLES ###
+
+    __slots__ = ()
+
+    ### SPECIAL METHODS ###
+
+    def __getstate__(self):
+        state = {}
+        slots = set()
+        for cls in self.__class__.mro():
+            slots.update(getattr(cls, '__slots__', ()))
+        for slot in slots:
+            state[slot] = getattr(self, slot, None)
+        return state
+
+    def __setstate__(self, state):
+        for slot, value in state.items():
+            setattr(self, slot, value)
 
 
 #-------------------------------------------------------------------------------

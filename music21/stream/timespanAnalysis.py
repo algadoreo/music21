@@ -18,6 +18,7 @@ import collections
 import unittest
 
 from music21 import base
+from music21 import common
 from music21 import chord
 from music21 import environment
 from music21 import key
@@ -520,14 +521,25 @@ class Verticality(object):
             >>> score = corpus.parse('bwv66.6')
             >>> tree = stream.timespans.streamToTimespanCollection(score)
             >>> verticality = tree.getVerticalityAt(1.0)
-            >>> print verticality
+            >>> print(verticality)
             <Verticality 1.0 {F#3 C#4 F#4 A4}>
 
         ::
 
             >>> previousVerticality = verticality.previousVerticality
-            >>> print previousVerticality
+            >>> print(previousVerticality)
             <Verticality 0.5 {G#3 B3 E4 B4}>
+            
+        Continue it:
+        
+        ::
+            >>> v = tree.getVerticalityAt(1.0)
+            >>> while v is not None:
+            ...     print(v)
+            ...     v = v.previousVerticality
+            <Verticality 1.0 {F#3 C#4 F#4 A4}>
+            <Verticality 0.5 {G#3 B3 E4 B4}>
+            <Verticality 0.0 {A3 E4 C#5}>
 
         Verticality objects created by an offset-tree hold a reference back to
         that offset-tree. This means that they determine their next or previous
@@ -751,7 +763,7 @@ class Verticality(object):
         allPairedMotions = []
                 
         for startingTs in startTss:
-            previousTs = self._timespanCollection.findPreviousElementTimespanInSamePart(startingTs)
+            previousTs = self._timespanCollection.findPreviousElementTimespanInSameStreamByClass(startingTs)
             if previousTs is None:
                 continue  # first not in piece in this part...
             
@@ -828,7 +840,7 @@ class VerticalitySequence(collections.Sequence):
 #------------------------------------------------------------------------------
 
 
-class VoiceLeadingQuartet(base.SlottedObject):
+class VoiceLeadingQuartet(common.SlottedObject):
 
     ### CLASS VARIABLES ###
 
