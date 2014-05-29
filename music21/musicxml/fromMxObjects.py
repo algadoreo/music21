@@ -586,7 +586,7 @@ def mxToLyric(mxLyric, inputM21=None, figuredBass=False):
             prefix = 'n'
         elif (prefix or suffix) == 'flat':
             prefix = 'b'
-        elif (prefix or suffix) == '':
+        elif (prefix or suffix) == None:
             prefix = ''
 
         if figure == None:
