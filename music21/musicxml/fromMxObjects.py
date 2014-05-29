@@ -575,7 +575,25 @@ def mxToLyric(mxLyric, inputM21=None, figuredBass=False):
     else:
         #!---------- Added: inputting figured bass as lyrics ----------!
         environLocal.printDebug('Rendering figured bass as lyric')
-        l.text = mxLyric.get('figure-number')
+        prefix = mxLyric.figurePrefix
+        figure = mxLyric.get('figure-number')
+        suffix = mxLyric.figureSuffix
+
+        # Translate to strings that music21 understands
+        if (prefix or suffix) == 'sharp':
+            prefix = '#'
+        elif (prefix or suffix) == 'natural':
+            prefix = 'n'
+        elif (prefix or suffix) == 'flat':
+            prefix = 'b'
+        elif (prefix or suffix) == '':
+            prefix = ''
+
+        if figure == None:
+            figure = ''
+
+        l.text = prefix + figure
+        #l.text = prefix + figure + suffix
 
     if inputM21 is None:
         return l
@@ -2319,7 +2337,8 @@ def mxToMeasure(mxMeasure, spannerBundle=None, inputM21=None, lastMeasureInfo=No
             
             #if mxNoteNext is not None and (mxNoteNext.get('chord') and mxNoteNext.get('rest')) is False:
                 # so that here it is a properly placed figured bass (i.e. followed by just a note)
-            mxFigure = mxFiguredBass.get('figureObj')
+                #mxFigure = mxFiguredBass.get('figure')
+            
             environLocal.printDebug('Encountered figured bass')
             addFiguredBass = True
 
@@ -2392,8 +2411,17 @@ def mxToMeasure(mxMeasure, spannerBundle=None, inputM21=None, lastMeasureInfo=No
 
                     #!---------- Adding figured bass as lyrics ----------!
                     if addFiguredBass:
-                        lyricObj = mxToLyric(mxFigure, figuredBass=True)
-                        n.lyrics.append(lyricObj)
+                        currentLyricNumber = 1
+                        #lyricObj = mxToLyric(mxFigure, figuredBass=True)
+                        for mxLyric in mxFiguredBass.figuredBassList:
+                            lyricObj = mxToLyric(mxLyric, figuredBass=True)
+                            lyricObj.number = currentLyricNumber
+                            # Non-empty <figure> tag
+                            if lyricObj.text is not None:
+                                n.lyrics.append(lyricObj)
+                            else:
+                                print('Empty figBass')
+                            currentLyricNumber += 1
                         environLocal.printDebug('Figured bass added as lyric')
                         addFiguredBass = False
 
