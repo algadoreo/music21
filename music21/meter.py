@@ -2511,8 +2511,8 @@ class TimeSignature(base.Music21Object):
         >>> m1 = stream.Measure()
         >>> ts = meter.TimeSignature('3/4')
         >>> m1.insert(0, ts)
-        >>> m1.insert(0, note.HalfNote("C#3"))
-        >>> n = note.QuarterNote("D3") # we will need this later
+        >>> m1.insert(0, note.Note('C#3', type='half'))
+        >>> n = note.Note('D3', type='quarter') # we will need this later
         >>> m1.insert(1.0, n)
         >>> m1.number = 1
         >>> p.insert(0, m1)
@@ -2564,7 +2564,7 @@ class TimeSignature(base.Music21Object):
         >>> m2.number = 2
         >>> ts2 = meter.TimeSignature('2/4')
         >>> m2.timeSignature = ts2
-        >>> m2.append(note.HalfNote("E3"))
+        >>> m2.append(note.Note('E3', type='half'))
         >>> p.append(m2)
         >>> s.show('text')
         {0.0} <music21.stream.Part ...>
@@ -2591,7 +2591,7 @@ class TimeSignature(base.Music21Object):
 
         >>> m3 = stream.Measure()
         >>> m3.timeSignature = meter.TimeSignature('3/4')
-        >>> eighth = note.EighthNote()
+        >>> eighth = note.Note(type='eighth')
         >>> m3.repeatAppend(eighth, 6)
         >>> [thisNote.beatStr for thisNote in m3.notes]
         ['1', '1 1/2', '2', '2 1/2', '3', '3 1/2']
@@ -4569,12 +4569,12 @@ class Test(unittest.TestCase):
 
     def testMixedDurationBeams2(self):
         from music21 import tinyNotation
-        bm = tinyNotation.TinyNotationStream('b8 c16 r e. d32', '3/8')
+        bm = tinyNotation.TinyNotationStream('3/8 b8 c16 r e. d32')
         bm2 = bm.makeNotation()
         beamList = [n.beams for n in bm2.flat.notes]
         self.assertEqual(repr(beamList), '[<music21.beam.Beams <music21.beam.Beam 1/start>>, <music21.beam.Beams <music21.beam.Beam 1/stop>/<music21.beam.Beam 2/partial/left>>, <music21.beam.Beams <music21.beam.Beam 1/start>/<music21.beam.Beam 2/start>>, <music21.beam.Beams <music21.beam.Beam 1/stop>/<music21.beam.Beam 2/stop>/<music21.beam.Beam 3/partial/left>>]')
 
-        bm = tinyNotation.TinyNotationStream("b16 c' b a g f# g r", '2/4')
+        bm = tinyNotation.TinyNotationStream("2/4 b16 c' b a g f# g r")
         bm2 = bm.makeNotation()
         beamList = [n.beams for n in bm2.flat.notes]
         beamListRepr = [str(i) + repr(beamList[i]) for i in range(len(beamList))]
