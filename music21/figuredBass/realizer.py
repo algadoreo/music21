@@ -86,7 +86,7 @@ def figuredBassFromStream(streamPart):
         :width: 500
             
     '''
-    sf = streamPart.flat
+    sf = streamPart.parts[-1].flat # Assume bass part is last part
     sfn = sf.notesAndRests
 
     keyList = sf.getElementsByClass(key.Key)
