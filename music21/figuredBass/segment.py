@@ -103,14 +103,19 @@ class Segment(object):
         self.bassNote = bassNote
         self.numParts = numParts
         self._maxPitch = maxPitch
-        if notationString == None and listOfPitches != None: #must be a chord symbol or roman numeral....
-            self.pitchNamesInChord = listOfPitches
-        #!---------- Added to accommodate harmony.ChordSymbol and roman.RomanNumeral objects --------!
+        #! ---------- Check to see if it's a note or rest ----------!
+        if bassNote.isNote:
+            if notationString == None and listOfPitches != None: #must be a chord symbol or roman numeral....
+                self.pitchNamesInChord = listOfPitches
+            #!---------- Added to accommodate harmony.ChordSymbol and roman.RomanNumeral objects --------!
+            else:
+                self.pitchNamesInChord = fbScale.getPitchNames(self.bassNote.pitch, notationString)
+            
+            self.allPitchesAboveBass = getPitches(self.pitchNamesInChord, self.bassNote.pitch, self._maxPitch)
+            self.segmentChord = chord.Chord(self.allPitchesAboveBass, quarterLength = bassNote.quarterLength)
         else:
-            self.pitchNamesInChord = fbScale.getPitchNames(self.bassNote.pitch, notationString)
-        
-        self.allPitchesAboveBass = getPitches(self.pitchNamesInChord, self.bassNote.pitch, self._maxPitch)
-        self.segmentChord = chord.Chord(self.allPitchesAboveBass, quarterLength = bassNote.quarterLength)
+            self.allPitchesAboveBass = None
+            self.segmentChord = bassNote
         self._environRules = environment.Environment(_MOD)
     
     #-------------------------------------------------------------------------------

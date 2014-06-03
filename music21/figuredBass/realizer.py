@@ -86,7 +86,10 @@ def figuredBassFromStream(streamPart):
         :width: 500
             
     '''
-    sf = streamPart.parts[-1].flat # Assume bass part is last part
+    if streamPart.hasPartLikeStreams():
+        sf = streamPart.parts[-1].flat # Assume bass part is last part
+    else:
+        sf = streamPart.flat
     sfn = sf.notesAndRests
 
     keyList = sf.getElementsByClass(key.Key)
@@ -118,14 +121,14 @@ def figuredBassFromStream(streamPart):
     
     for n in sfn:
         # Hack solution to deal with rests: replace all rests with a 'C0' (for now)
-        if 'Rest' not in n.classes:
-            if len(n.lyrics) > 0:
-                annotationString = ", ".join([x.text for x in n.lyrics])
-                fb.addElement(n, annotationString)
-            else:
-                fb.addElement(n)
+        # if 'Rest' not in n.classes:
+        if len(n.lyrics) > 0:
+            annotationString = ", ".join([x.text for x in n.lyrics])
+            fb.addElement(n, annotationString)
         else:
-            fb.addElement(note.Note('C0', quarterLength = n.quarterLength))
+            fb.addElement(n)
+        # else:
+        #     fb.addElement(note.Note('C0', quarterLength = n.quarterLength))
     
     return fb
 
@@ -304,13 +307,15 @@ class FiguredBassLine(object):
             bassLine[0].padAsAnacrusis()
         return bassLine
     
-    def retrieveSegments(self, fbRules = None, numParts = 4, maxPitch = None):
+    def retrieveSegments(self, fbRules = None, numParts = 4, maxPitch = None, harmonicBeat = 1.0):
         '''
         generates the segmentList from an fbList, including any overlayed Segments
 
         if fbRules is None, creates a new rules.Rules() object
         
         if maxPitch is None, uses pitch.Pitch('B5')
+
+        the harmonic beat (when chord changes usually happen) is a quarter note by default
         '''
         if fbRules is None:
             fbRules = rules.Rules()
@@ -324,7 +329,7 @@ class FiguredBassLine(object):
         else:
             currentMapping = checker.createOffsetMapping(bassLine)
         allKeys = sorted(currentMapping.keys())
-        bassLine = bassLine.flat.notes#AndRests
+        bassLine = bassLine.flat.notesAndRests
         bassNoteIndex = 0
         previousBassNote = bassLine[bassNoteIndex]
         bassNote = currentMapping[allKeys[0]][-1]
@@ -348,9 +353,16 @@ class FiguredBassLine(object):
                 for partNumber in range(len(currentMapping[k]), numParts+1):
                     previousSegment.fbRules._partsToCheck.append(partNumber)
                 currentSegment.quarterLength = 0.0 # Fictitious, representative only for harmonies preserved with addition of melody or melodies
-            segmentList.append(currentSegment)
-            previousSegment = currentSegment
-        return segmentList
+            
+            #! ---------- Provision to take care of passing/neighbour notes etc ----------!
+            if startTime % harmonicBeat != 0.0 and previousBassNote.lyrics[-1].text == '':
+                previousSegment.quarterLength += previousBassNote.quarterLength
+            #! ---------- Original code below: advance chord only if on a harmonic beat or has figured bass ----------!
+            else:
+                segmentList.append(currentSegment)
+                previousSegment = currentSegment
+
+        return (bassLine, segmentList)
     
     def overlayPart(self, music21Part):
         self._overlayedParts.append(music21Part)
@@ -451,12 +463,16 @@ class FiguredBassLine(object):
                 segmentList.append(correspondingSegment)                
         #!---------- Original code - Accommodates a tuple (figured bass)  --------!
         else:
-            segmentList = self.retrieveSegments(fbRules, numParts, maxPitch)      
+            (bassLine, segmentList) = self.retrieveSegments(fbRules, numParts, maxPitch)      
 
         if len(segmentList) >= 2:
             for segmentIndex in range(len(segmentList) - 1):
                 segmentA = segmentList[segmentIndex]
+                if segmentA.segmentChord.isRest:
+                    continue
                 segmentB = segmentList[segmentIndex + 1]
+                if segmentB.segmentChord.isRest:
+                    segmentB = segmentList[segmentIndex + 2]
                 correctAB = segmentA.allCorrectConsecutivePossibilities(segmentB)
                 segmentA.movements = collections.defaultdict(list)
                 listAB = list(correctAB)
@@ -471,7 +487,7 @@ class FiguredBassLine(object):
 
         return Realization(realizedSegmentList = segmentList, inKey = self.inKey, 
                            inTime = self.inTime, overlayedParts = self._overlayedParts[0:-1],
-                           paddingLeft = self._paddingLeft)
+                           paddingLeft = self._paddingLeft, bassLine = bassLine)
 
     def generateRandomRealization(self):         
         '''
@@ -540,8 +556,16 @@ class FiguredBassLine(object):
         elif len(segmentList) >= 3:
             segmentList.reverse()
             for segmentIndex in range(1, len(segmentList) - 1):
-                movementsAB = segmentList[segmentIndex + 1].movements
-                movementsBC = segmentList[segmentIndex].movements
+                if segmentList[segmentIndex].segmentChord.isRest:
+                    movementsAB = segmentList[segmentIndex + 1].movements
+                    movementsBC = segmentList[segmentIndex - 1].movements
+                elif segmentList[segmentIndex + 1].segmentChord.isRest:
+                    movementsAB = segmentList[segmentIndex + 2].movements
+                    movementsBC = segmentList[segmentIndex].movements
+                else:
+                    #! ---------- Original code ----------!
+                    movementsAB = segmentList[segmentIndex + 1].movements
+                    movementsBC = segmentList[segmentIndex].movements
                 #eliminated = []
                 for (possibB, possibCList) in movementsBC.items():
                     if len(possibCList) == 0:
@@ -586,6 +610,8 @@ class Realization(object):
             self._overlayedParts = fbLineOutputs['overlayedParts']
         if 'paddingLeft' in fbLineOutputs:
             self._paddingLeft = fbLineOutputs['paddingLeft']
+        if 'bassLine' in fbLineOutputs:
+            self._bassLine = fbLineOutputs['bassLine']
         self.keyboardStyleOutput = True 
 
     def getNumSolutions(self):
@@ -612,6 +638,8 @@ class Realization(object):
         pathList = {}
         for segmentIndex in range(1, len(self._segmentList)):
             segmentA = self._segmentList[segmentIndex]
+            if segmentA.segmentChord.isRest:
+                continue
             newPathList = {}
             if len(pathList.keys()) == 0:
                 for possibA in segmentA.movements:
@@ -680,10 +708,14 @@ class Realization(object):
         progression.append(prevPossib)
         
         for segmentIndex in range(0, len(self._segmentList)-1):
-            currMovements = self._segmentList[segmentIndex].movements
-            nextPossib = random.sample(currMovements[prevPossib], 1)[0]
-            progression.append(nextPossib)
-            prevPossib = nextPossib
+            if self._segmentList[segmentIndex].segmentChord.isRest:
+                # currMovements = self._segmentList[segmentIndex - 1].movements
+                progression.append(prevPossib)
+            else:
+                currMovements = self._segmentList[segmentIndex].movements
+                nextPossib = random.sample(currMovements[prevPossib], 1)[0]
+                progression.append(nextPossib)
+                prevPossib = nextPossib
 
         return progression
 
@@ -699,7 +731,10 @@ class Realization(object):
         if self._paddingLeft != 0.0:
             r = note.Rest(quarterLength = self._paddingLeft)
             bassLine.append(copy.deepcopy(r))
-            
+        
+        for n in self._bassLine:
+            bassLine.append(n)
+
         if self.keyboardStyleOutput:
             rightHand = stream.Part()
             sol.insert(0.0, rightHand)
@@ -708,23 +743,27 @@ class Realization(object):
                 rightHand.append(copy.deepcopy(r))
 
             for segmentIndex in range(len(self._segmentList)):
-                possibA = possibilityProgression[segmentIndex]
-                bassNote = self._segmentList[segmentIndex].bassNote
-                #!---------- Check to see if it's actually a rest, indicated by a 'C0' ----------!
-                if bassNote.nameWithOctave == 'C0':
-                    bassLine.append(note.Rest(quarterLength = bassNote.quarterLength))
+                if self._segmentList[segmentIndex].segmentChord.isRest:
+                    rhChord = note.Rest()
                 else:
-                #!---------- Original code: just add the note ----------!
-                    bassLine.append(copy.deepcopy(bassNote))
-                rhPitches = possibA[0:-1]                           
-                rhChord = chord.Chord(rhPitches)
+                    possibA = possibilityProgression[segmentIndex]
+                # bassNote = self._segmentList[segmentIndex].bassNote
+                # bassNote = self._bassLine[segmentIndex]
+                # #!---------- Check to see if it's actually a rest, indicated by a 'C0' ----------!
+                # if bassNote.nameWithOctave == 'C0':
+                #     bassLine.append(note.Rest(quarterLength = bassNote.quarterLength))
+                # else:
+                # #!---------- Original code: just add the note ----------!
+                #     bassLine.append(copy.deepcopy(bassNote))
+                    rhPitches = possibA[0:-1]
+                    rhChord = chord.Chord(rhPitches)
                 rhChord.quarterLength = self._segmentList[segmentIndex].quarterLength
-                #!---------- As above, check to see if it's actually a rest ----------!
-                if bassNote.nameWithOctave == 'C0':
-                    rightHand.append(note.Rest(quarterLength = bassNote.quarterLength))
-                else:
-                #!---------- Original code: just add the chord ----------!
-                    rightHand.append(rhChord)
+                # #!---------- As above, check to see if it's actually a rest ----------!
+                # if bassNote.nameWithOctave == 'C0':
+                #     rightHand.append(note.Rest(quarterLength = bassNote.quarterLength))
+                # else:
+                # #!---------- Original code: just add the chord ----------!
+                rightHand.append(rhChord)
             rightHand.insert(0.0, clef.TrebleClef())
             
             rightHand.makeNotation(inPlace=True, cautionaryNotImmediateRepeat=False)
@@ -743,23 +782,29 @@ class Realization(object):
                 upperParts.append(fbPart)
 
             for segmentIndex in range(len(self._segmentList)):
-                possibA = possibilityProgression[segmentIndex]
-                bassNote = self._segmentList[segmentIndex].bassNote
-                #!---------- Check to see if it's actually a rest, indicated by a 'C0' ----------!
-                if bassNote.nameWithOctave == 'C0':
-                    bassLine.append(note.Rest(quarterLength = bassNote.quarterLength))
+                if self._segmentList[segmentIndex].segmentChord.isRest:
+                    for partNumber in range(len(possibA) - 1):
+                        n1 = note.Rest()
+                        n1.quarterLength = self._segmentList[segmentIndex].quarterLength
+                        upperParts[partNumber].append(n1)
                 else:
-                #!---------- Original code: just add the note ----------!
-                    bassLine.append(copy.deepcopy(bassNote))  
+                    possibA = possibilityProgression[segmentIndex]
+                # bassNote = self._segmentList[segmentIndex].bassNote
+                # #!---------- Check to see if it's actually a rest, indicated by a 'C0' ----------!
+                # if bassNote.nameWithOctave == 'C0':
+                #     bassLine.append(note.Rest(quarterLength = bassNote.quarterLength))
+                # else:
+                # #!---------- Original code: just add the note ----------!
+                #     bassLine.append(copy.deepcopy(bassNote))  
 
-                for partNumber in range(len(possibA) - 1):
-                    n1 = note.Note(possibA[partNumber])
-                    n1.quarterLength = self._segmentList[segmentIndex].quarterLength
-                    #!---------- As above, check to see if it's actually a rest ----------!
-                    if bassNote.nameWithOctave == 'C0':
-                        upperParts[partNumber].append(note.Rest(quarterLength = bassNote.quarterLength))
-                    else:
-                    #!---------- Original code: just add the note ----------!
+                    for partNumber in range(len(possibA) - 1):
+                        n1 = note.Note(possibA[partNumber])
+                        n1.quarterLength = self._segmentList[segmentIndex].quarterLength
+                        # #!---------- As above, check to see if it's actually a rest ----------!
+                        # if bassNote.nameWithOctave == 'C0':
+                        #     upperParts[partNumber].append(note.Rest(quarterLength = bassNote.quarterLength))
+                        # else:
+                        #!---------- Original code: just add the note ----------!
                         upperParts[partNumber].append(n1)
                     
             for upperPart in upperParts:
