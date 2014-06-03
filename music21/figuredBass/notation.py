@@ -16,10 +16,13 @@ from music21 import exceptions21
 from music21 import pitch
 
 shorthandNotation = {(None,) : (5,3),
+                     (None,3) : (5,3), # addition
                      (5,) : (5,3),
                      (6,) : (6,3),
                      (7,) : (7,5,3),
-                     (9,) : (9,7,5,3),
+                     (8,) : (8,5,3), # addition
+                     (9,) : (9,5,3), # modification
+                     #(9,) : (9,7,5,3),
                      (11,) : (11,9,7,5,3),
                      (13,) : (13,11,9,7,5,3),
                      (6,5) : (6,5,3),
