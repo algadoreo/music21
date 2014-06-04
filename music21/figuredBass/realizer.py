@@ -461,11 +461,9 @@ class FiguredBassLine(object):
             for segmentIndex in range(len(segmentList) - 1):
                 segmentA = segmentList[segmentIndex]
                 if segmentA.segmentChord.isRest:
-                    #! ---------- Added code: if it's a rest, don't look for resolution and continue to next note/segment ----------!
+                #! ---------- Added code: if it's a rest, don't look for resolution and continue to next note/segment ----------!
                     continue
-                # segmentB = segmentList[segmentIndex + 1]
-                # if segmentB.segmentChord.isRest:
-                    #! ---------- Added code: if the next note is a rest, skip it and look at the following note/segment ----------!
+                #! ---------- Added code: look for the following note/segment ----------!
                 i = 1
                 while segmentList[segmentIndex + i].segmentChord.isRest:
                     i += 1
@@ -553,20 +551,14 @@ class FiguredBassLine(object):
         elif len(segmentList) >= 3:
             segmentList.reverse()
             for segmentIndex in range(1, len(segmentList) - 1):
+                #! ---------- Added code: check for rests ----------!
                 if segmentList[segmentIndex].segmentChord.isRest:
                     continue
-                    # movementsAB = segmentList[segmentIndex + 1].movements
-                    # movementsBC = segmentList[segmentIndex - 1].movements
-                # elif segmentList[segmentIndex + 1].segmentChord.isRest:
-                # else:
                 i = 1
                 while segmentList[segmentIndex + i].segmentChord.isRest:
                     i += 1
                 movementsAB = segmentList[segmentIndex + i].movements
-                    # movementsBC = segmentList[segmentIndex].movements
-                # else:
-                #! ---------- Original code ----------!
-                #     movementsAB = segmentList[segmentIndex + 1].movements
+                #! ---------- Original code below ----------!
                 movementsBC = segmentList[segmentIndex].movements
                 #eliminated = []
                 for (possibB, possibCList) in movementsBC.items():
@@ -575,9 +567,10 @@ class FiguredBassLine(object):
                 for (possibA, possibBList) in movementsAB.items():
                     movementsAB[possibA] = list(itertools.ifilter(lambda possibB: movementsBC.has_key(possibB), possibBList))
 
-            for (possibA, possibBList) in movementsAB.items():
-                if len(possibBList) == 0:
-                    del movementsAB[possibA]
+            # for (possibA, possibBList) in movementsAB.items():
+            #! ---------- Modification: moved inside previous for loop for consistency ----------!
+                    if len(possibBList) == 0:
+                        del movementsAB[possibA]
                     
             segmentList.reverse()
             return True
@@ -682,8 +675,10 @@ class Realization(object):
                 progressions.append([possibA, possibB])
 
         for segmentIndex in range(1, len(self._segmentList)-1):
+            # TO DO: make this section compatible with rests
             # if self._segmentList[segmentIndex].segmentChord.isRest:
             #     progressions.append()
+            # else:
             currMovements = self._segmentList[segmentIndex].movements
             for unused_progIndex in range(len(progressions)):
                 prog = progressions.pop(0)
@@ -713,7 +708,6 @@ class Realization(object):
         
         for segmentIndex in range(0, len(self._segmentList)-1):
             if self._segmentList[segmentIndex].segmentChord.isRest:
-                # currMovements = self._segmentList[segmentIndex - 1].movements
                 progression.append(prevPossib)
             else:
                 currMovements = self._segmentList[segmentIndex].movements
