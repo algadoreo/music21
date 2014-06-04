@@ -463,10 +463,13 @@ class FiguredBassLine(object):
                 if segmentA.segmentChord.isRest:
                     #! ---------- Added code: if it's a rest, don't look for resolution and continue to next note/segment ----------!
                     continue
-                segmentB = segmentList[segmentIndex + 1]
-                if segmentB.segmentChord.isRest:
+                # segmentB = segmentList[segmentIndex + 1]
+                # if segmentB.segmentChord.isRest:
                     #! ---------- Added code: if the next note is a rest, skip it and look at the following note/segment ----------!
-                    segmentB = segmentList[segmentIndex + 2]
+                i = 1
+                while segmentList[segmentIndex + i].segmentChord.isRest:
+                    i += 1
+                segmentB = segmentList[segmentIndex + i]
                 correctAB = segmentA.allCorrectConsecutivePossibilities(segmentB)
                 segmentA.movements = collections.defaultdict(list)
                 listAB = list(correctAB)
@@ -551,15 +554,20 @@ class FiguredBassLine(object):
             segmentList.reverse()
             for segmentIndex in range(1, len(segmentList) - 1):
                 if segmentList[segmentIndex].segmentChord.isRest:
-                    movementsAB = segmentList[segmentIndex + 1].movements
-                    movementsBC = segmentList[segmentIndex - 1].movements
-                elif segmentList[segmentIndex + 1].segmentChord.isRest:
-                    movementsAB = segmentList[segmentIndex + 2].movements
-                    movementsBC = segmentList[segmentIndex].movements
-                else:
-                    #! ---------- Original code ----------!
-                    movementsAB = segmentList[segmentIndex + 1].movements
-                    movementsBC = segmentList[segmentIndex].movements
+                    continue
+                    # movementsAB = segmentList[segmentIndex + 1].movements
+                    # movementsBC = segmentList[segmentIndex - 1].movements
+                # elif segmentList[segmentIndex + 1].segmentChord.isRest:
+                # else:
+                i = 1
+                while segmentList[segmentIndex + i].segmentChord.isRest:
+                    i += 1
+                movementsAB = segmentList[segmentIndex + i].movements
+                    # movementsBC = segmentList[segmentIndex].movements
+                # else:
+                #! ---------- Original code ----------!
+                #     movementsAB = segmentList[segmentIndex + 1].movements
+                movementsBC = segmentList[segmentIndex].movements
                 #eliminated = []
                 for (possibB, possibCList) in movementsBC.items():
                     if len(possibCList) == 0:
@@ -674,6 +682,8 @@ class Realization(object):
                 progressions.append([possibA, possibB])
 
         for segmentIndex in range(1, len(self._segmentList)-1):
+            # if self._segmentList[segmentIndex].segmentChord.isRest:
+            #     progressions.append()
             currMovements = self._segmentList[segmentIndex].movements
             for unused_progIndex in range(len(progressions)):
                 prog = progressions.pop(0)
