@@ -2417,16 +2417,19 @@ def mxToMeasure(mxMeasure, spannerBundle=None, inputM21=None, lastMeasureInfo=No
                     #!---------- Adding figured bass as lyrics ----------!
                     if addFiguredBass:
                         currentLyricNumber = 1
-                        #lyricObj = mxToLyric(mxFigure, figuredBass=True)
                         for mxLyric in mxFiguredBass.figuredBassList:
                             lyricObj = mxToLyric(mxLyric, figuredBass=True)
                             lyricObj.number = currentLyricNumber
-                            # Non-empty <figure> tag
-                            if lyricObj.text is not None:
+                            if lyricObj.text is not '':
                                 n.lyrics.append(lyricObj)
                             else:
-                                print('Empty figBass')
+                                #!---------- An empty string indicates an extension; look at previous figure ----------!
+                                lyricObj = mxToLyric(prevFigure.figuredBassList[currentLyricNumber-1], figuredBass=True)
+                                n.lyrics.append(lyricObj)
+                                mxFiguredBass.figuredBassList[currentLyricNumber-1].figureNumber = lyricObj.text # also enter it into the actual figure so it can be re-used
                             currentLyricNumber += 1
+                        #!---------- Store the figure in a case of extensions ----------!
+                        prevFigure = mxFiguredBass
                         environLocal.printDebug('Figured bass added as lyric')
                         addFiguredBass = False
 
