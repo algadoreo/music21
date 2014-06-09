@@ -585,13 +585,23 @@ def mxToLyric(mxLyric, inputM21=None, figuredBass=False):
             prefix = 'n'
         elif (prefix or suffix) == 'flat':
             prefix = 'b'
-        elif (prefix or suffix) == None:
+        elif (prefix or suffix) == 'double-sharp':
+            prefix = '##'
+        elif (prefix or suffix) == 'double-flat':
+            prefix = 'bb'
+        elif prefix == None:
             prefix = ''
 
         if figure == None:
             figure = ''
 
         l.text = prefix + figure
+
+        # A slash usually means sharp, except after '5' where it means lowered
+        if suffix == 'slash' and figure == '5':
+            l.text = '5/'
+        elif suffix == 'slash' and figure != '5':
+            l.text = figure + '+'
 
     if inputM21 is None:
         return l
