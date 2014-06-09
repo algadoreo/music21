@@ -354,7 +354,6 @@ class Handler(xml.sax.ContentHandler):
 
         elif name == 'figure':
             self._mxObjs['figured-bass'].figuredBassList.append(self._mxObjs['figure'])
-            #self._mxObjs['figured-bass'].figureObj = self._mxObjs['figure']
 
         elif name == 'prefix':
             self._mxObjs['figure'].figurePrefix = self._currentTag.charData

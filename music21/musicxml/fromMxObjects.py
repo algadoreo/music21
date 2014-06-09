@@ -574,9 +574,8 @@ def mxToLyric(mxLyric, inputM21=None, figuredBass=False):
         l.syllabic = mxLyric.get('syllabic')
     else:
         #!---------- Added: inputting figured bass as lyrics ----------!
-        environLocal.printDebug('Rendering figured bass as lyric')
         prefix = mxLyric.figurePrefix
-        figure = mxLyric.get('figure-number')
+        figure = mxLyric.figureNumber
         suffix = mxLyric.figureSuffix
 
         # Translate to strings that music21 understands
@@ -593,7 +592,6 @@ def mxToLyric(mxLyric, inputM21=None, figuredBass=False):
             figure = ''
 
         l.text = prefix + figure
-        #l.text = prefix + figure + suffix
 
     if inputM21 is None:
         return l
@@ -2339,12 +2337,6 @@ def mxToMeasure(mxMeasure, spannerBundle=None, inputM21=None, lastMeasureInfo=No
                 mxNoteNext = mxObjNext
             else:
                 mxNoteNext = None
-            
-            #if mxNoteNext is not None and (mxNoteNext.get('chord') and mxNoteNext.get('rest')) is False:
-                # so that here it is a properly placed figured bass (i.e. followed by just a note)
-                #mxFigure = mxFiguredBass.get('figure')
-            
-            environLocal.printDebug('Encountered figured bass')
             addFiguredBass = True
 
         elif isinstance(mxObj, mxObjects.Note):
@@ -2430,7 +2422,6 @@ def mxToMeasure(mxMeasure, spannerBundle=None, inputM21=None, lastMeasureInfo=No
                             currentLyricNumber += 1
                         #!---------- Store the figure in a case of extensions ----------!
                         prevFigure = mxFiguredBass
-                        environLocal.printDebug('Figured bass added as lyric')
                         addFiguredBass = False
 
 #                if mxNote.get('notationsObj') is not None:
