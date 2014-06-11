@@ -366,19 +366,20 @@ class FiguredBassLine(object):
                 for partNumber in range(len(currentMapping[k]), numParts+1):
                     previousSegment.fbRules._partsToCheck.append(partNumber)
                 currentSegment.quarterLength = 0.0 # Fictitious, representative only for harmonies preserved with addition of melody or melodies
-            
-            #!---------- Check to see if this note is an extension (yes by default) ----------!
-            extension = True
+
+            #!---------- Check to see if this note is a complete extension (whole chord extended/tied); yes by default ----------!
+            extendAll = True
             if not bassNote.lyrics:
-                extension = False
+                extendAll = False
             else:
                 for l in bassNote.lyrics:
+                    #!---------- If there is non-extension (i.e., a numeral/accidental), then it is not a complete extension ----------!
                     if l.syllabic != 'end':
-                        extension = False
+                        extendAll = False
                         break
 
             #!---------- Provision to take care of extensions, passing/neighbour notes etc, and ties ----------!
-            if extension or (startTime % harmonicBeat != 0.0 and not bassNote.lyrics) or (bassNote.tie and bassNote.tie.type == ('stop' or 'continue') and not bassNote.lyrics):
+            if extendAll or (startTime % harmonicBeat != 0.0 and not bassNote.lyrics) or (bassNote.tie and bassNote.tie.type == ('stop' or 'continue') and not bassNote.lyrics):
                 previousSegment.quarterLength += bassNote.quarterLength
             #!---------- Original code below; advance chord only if on a harmonic beat or has figured bass ----------!
             else:
