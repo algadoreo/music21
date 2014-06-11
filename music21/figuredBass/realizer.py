@@ -395,7 +395,7 @@ class FiguredBassLine(object):
     def overlayPart(self, music21Part):
         self._overlayedParts.append(music21Part)
         
-    def realize(self, fbRules = None, numParts = 4, maxPitch = None):
+    def realize(self, fbRules = None, numParts = 4, maxPitch = None, harmonicBeat = 1.0):
         '''
         Creates a :class:`~music21.figuredBass.segment.Segment` for each (bassNote, notationString) pair
         added using :meth:`~music21.figuredBass.realizer.FiguredBassLine.addElement`. Each Segment is associated
@@ -413,6 +413,9 @@ class FiguredBassLine(object):
         if `fbRules` is None, creates a new rules.Rules() object
         
         if `maxPitch` is None, uses pitch.Pitch('B5')
+
+        'harmonicBeat' added by Jason Leung, June 2014
+        Refers to the default unit of harmonic time (when chord changes usually happen), measured in quarterLength
 
         
         
@@ -491,7 +494,7 @@ class FiguredBassLine(object):
                 segmentList.append(correspondingSegment)                
         #!---------- Original code - Accommodates a tuple (figured bass)  --------!
         else:
-            (bassLine, segmentList) = self.retrieveSegments(fbRules, numParts, maxPitch)      
+            (bassLine, segmentList) = self.retrieveSegments(fbRules, numParts, maxPitch, harmonicBeat)      
 
         if len(segmentList) >= 2:
             for segmentIndex in range(len(segmentList) - 1):
