@@ -122,9 +122,12 @@ def figuredBassFromStream(streamPart):
     for n in sfn:
         if len(n.lyrics) > 0:
             annotationString = ", ".join([x.text for x in n.lyrics])
-            fb.addElement(n, annotationString)
+            # fb.addElement(n, annotationString)
+            fb.fbAppend(n, annotationString) # customized version of addElement
+            
         else:
-            fb.addElement(n)
+            # fb.addElement(n)
+            fb.fbAppend(n) # customized version of addElement
     
     return fb
 
@@ -191,7 +194,7 @@ class FiguredBassLine(object):
     >>> fbLine.inTime
     <music21.meter.TimeSignature 3/4>
     '''
-    _DOC_ORDER = ['addElement', 'generateBassLine', 'realize']
+    _DOC_ORDER = ['addElement', 'fbAppend', 'generateBassLine', 'realize']
     _DOC_ATTR = {'inKey': 'A :class:`~music21.key.Key` which implies a scale value, scale mode, and key signature for a :class:`~music21.figuredBass.realizerScale.FiguredBassScale`.',
                  'inTime': 'A :class:`~music21.meter.TimeSignature` which specifies the time signature of realizations outputted to a :class:`~music21.stream.Score`.'}    
     
@@ -248,6 +251,24 @@ class FiguredBassLine(object):
         else:
             raise FiguredBassLineException("Not a valid bassObject (only note.Note, harmony.ChordSymbol, and roman.RomanNumeral supported) was %r" % bassObject)
     
+    def fbAppend(self, bassObject, notationString = None):
+        '''
+        The same as addElement above, except without the call to addLyricsToBassNote which resets
+        all the formatting in the lyrics line.
+        
+        Inserted and customized by Jason Leung, June 2014
+        '''
+        bassObject.notationString = notationString
+        c = bassObject.classes
+        #!---------- Added ability to parse rests ----------!
+        if 'Note' or 'Rest' in c:
+            self._fbList.append((bassObject, notationString)) #a bass note, and a notationString
+        #!---------- Added to accommodate harmony.ChordSymbol and roman.RomanNumeral objects --------!     
+        elif 'RomanNumeral' in c or 'ChordSymbol' in c: #and item.isClassOrSubclass(harmony.Harmony):
+            self._fbList.append(bassObject) #a roman Numeral object
+        else:
+            raise FiguredBassLineException("Not a valid bassObject (only note.Note, harmony.ChordSymbol, and roman.RomanNumeral supported) was %r" % bassObject)
+
     def generateBassLine(self):
         '''
         Generates the bass line as a :class:`~music21.stream.Score`.
@@ -346,13 +367,28 @@ class FiguredBassLine(object):
                     previousSegment.fbRules._partsToCheck.append(partNumber)
                 currentSegment.quarterLength = 0.0 # Fictitious, representative only for harmonies preserved with addition of melody or melodies
             
-            #! ---------- Provision to take care of passing/neighbour notes etc ----------!
-            if startTime % harmonicBeat != 0.0 and previousBassNote.lyrics[-1].text == '':
-                previousSegment.quarterLength += previousBassNote.quarterLength
-            #! ---------- Original code below: advance chord only if on a harmonic beat or has figured bass ----------!
+            #!---------- Check to see if this note is an extension (yes by default) ----------!
+            extension = True
+            if not bassNote.lyrics:
+                extension = False
+            else:
+                for l in bassNote.lyrics:
+                    if l.syllabic != 'end':
+                        extension = False
+                        break
+
+            #!---------- Provision to take care of extensions and passing/neighbour notes etc ----------!
+            if extension or (startTime % harmonicBeat != 0.0 and not bassNote.lyrics):
+                previousSegment.quarterLength += bassNote.quarterLength
+            #!---------- Original code below; advance chord only if on a harmonic beat or has figured bass ----------!
             else:
                 segmentList.append(currentSegment)
                 previousSegment = currentSegment
+
+            #!---------- Aesthetics: mark extensions with dash ----------!
+            for l in bassNote.lyrics:
+                if l.syllabic == 'end':
+                    l.text = '-'
 
         return (bassLine, segmentList)
     

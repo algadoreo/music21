@@ -2182,6 +2182,7 @@ def mxToMeasure(mxMeasure, spannerBundle=None, inputM21=None, lastMeasureInfo=No
     chordVoice = None # Sibelius 7.1 only puts a <voice> tag on the
                         # first note of a chord, so we need to make sure
                         # that we keep track of the last voice...
+    global prevFigure # for storing the figured bass in case it ties over to next measure
     addFiguredBass = False
 
     for i in range(len(mxMeasure)):
@@ -2427,6 +2428,8 @@ def mxToMeasure(mxMeasure, spannerBundle=None, inputM21=None, lastMeasureInfo=No
                             else:
                                 #!---------- An empty string indicates an extension; look at previous figure ----------!
                                 lyricObj = mxToLyric(prevFigure.figuredBassList[currentLyricNumber-1], figuredBass=True)
+                                lyricObj.number = currentLyricNumber
+                                lyricObj.syllabic = 'end'
                                 n.lyrics.append(lyricObj)
                                 mxFiguredBass.figuredBassList[currentLyricNumber-1].figureNumber = lyricObj.text # also enter it into the actual figure so it can be re-used
                             currentLyricNumber += 1
