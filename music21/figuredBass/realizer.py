@@ -497,7 +497,7 @@ class FiguredBassLine(object):
         else:
             (bassLine, segmentList) = self.retrieveSegments(fbRules, numParts, maxPitch, harmonicBeat)      
 
-        if len(segmentList) >= 2:
+        if len(segmentList) >= 2 and len(bassLine.flat.notes) >= 2:
             for segmentIndex in range(len(segmentList) - 1):
                 segmentA = segmentList[segmentIndex]
                 if segmentA.segmentChord.isRest:
@@ -519,7 +519,15 @@ class FiguredBassLine(object):
         elif len(segmentList) == 1:
             segmentA = segmentList[0]
             segmentA.correctA = list(segmentA.allCorrectSinglePossibilities())
-        elif len(segmentList) == 0:
+        elif len(bassLine.flat.notes) == 1:
+            #!---------- This is for when there is only one note, but surrounded by rests; find the note/chord ('segment') and return its realization ----------!
+            for segmentA in segmentList:
+                try:
+                    segmentA.correctA = list(segmentA.allCorrectSinglePossibilities())
+                    break
+                except:
+                    continue
+        elif len(segmentList) == 0 or len(bassLine.flat.notes) == 0:
             raise FiguredBassLineException("No (bassNote, notationString) pairs to realize.")
 
         return Realization(realizedSegmentList = segmentList, inKey = self.inKey, 
@@ -676,6 +684,14 @@ class Realization(object):
         '''
         if len(self._segmentList) == 1:
             return len(self._segmentList[0].correctA)
+        elif len(self._bassLine.flat.notes) == 1:
+            #!---------- This is for when there is only one note, but surrounded by rests; find the note/chord ('segment') and return its realization ----------!
+            #!---------- Possible to merge into above 'if'; separation due to authorship ----------!
+            for i in self._segmentList:
+                try:
+                    return len(i.correctA)
+                except:
+                    continue
         # What if there's only one (bassNote, notationString)?
         self._segmentList.reverse()
         pathList = {}
@@ -751,6 +767,16 @@ class Realization(object):
         if len(self._segmentList) == 1:
             possibA = random.sample(self._segmentList[0].correctA, 1)[0]
             progression.append(possibA)
+            return progression
+        elif len(self._bassLine.flat.notes) == 1:
+            #!---------- This is for when there is only one note, but surrounded by rests; find the note/chord ('segment') and return its realization ----------!
+            #!---------- Possible to merge into above 'if'; separation due to authorship ----------!
+            for i in self._segmentList:
+                try:
+                    possibA = random.sample(i.correctA, 1)[0]
+                except:
+                    possibA = []
+                progression.append(possibA)
             return progression
         
         if self.getNumSolutions() == 0:
