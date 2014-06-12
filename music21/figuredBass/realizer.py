@@ -381,7 +381,7 @@ class FiguredBassLine(object):
                         break
 
             #!---------- Provision to take care of extensions, passing/neighbour notes etc, and ties ----------!
-            if extendAll or (startTime % harmonicBeat != 0.0 and not bassNote.lyrics) or (bassNote.tie and bassNote.tie.type == ('stop' or 'continue') and not bassNote.lyrics):
+            if extendAll or (startTime % harmonicBeat != 0.0 and not bassNote.lyrics) or (bassNote.tie and (bassNote.tie.type == 'stop' or bassNote.tie.type == 'continue') and not bassNote.lyrics):
                 previousSegment.quarterLength += bassNote.quarterLength
             #!---------- Original code below; advance chord only if on a harmonic beat or has figured bass ----------!
             else:
