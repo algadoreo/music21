@@ -320,7 +320,7 @@ class FiguredBassLine(object):
             bassLine[0].padAsAnacrusis()
         return bassLine
     
-    def retrieveSegments(self, fbRules = None, numParts = 4, maxPitch = None, harmonicBeat = 1.0):
+    def retrieveSegments(self, fbRules = None, numParts = 4, maxPitch = None, harmonicBeat = 1.0, extensionString = ''):
         '''
         generates the segmentList from an fbList, including any overlayed Segments
 
@@ -329,6 +329,8 @@ class FiguredBassLine(object):
         if maxPitch is None, uses pitch.Pitch('B5')
 
         the harmonic beat (when chord changes usually happen) is a quarter note by default
+
+        an extension will be output as an empty string by default
         '''
         if fbRules is None:
             fbRules = rules.Rules()
@@ -389,14 +391,14 @@ class FiguredBassLine(object):
             #!---------- Aesthetics: mark extensions with dash ----------!
             for l in bassNote.lyrics:
                 if l.syllabic == 'end':
-                    l.text = '-'
+                    l.text = extensionString
 
         return (bassLine, segmentList)
     
     def overlayPart(self, music21Part):
         self._overlayedParts.append(music21Part)
         
-    def realize(self, fbRules = None, numParts = 4, maxPitch = None, harmonicBeat = 1.0):
+    def realize(self, fbRules = None, numParts = 4, maxPitch = None, harmonicBeat = 1.0, extensionString = ''):
         '''
         Creates a :class:`~music21.figuredBass.segment.Segment` for each (bassNote, notationString) pair
         added using :meth:`~music21.figuredBass.realizer.FiguredBassLine.addElement`. Each Segment is associated
@@ -417,6 +419,10 @@ class FiguredBassLine(object):
 
         'harmonicBeat' added by Jason Leung, June 2014
         Refers to the default unit of harmonic time (when chord changes usually happen), measured in quarterLength
+
+        'extensionString' added by Jason Leung, June 2014
+        Is the string used to mark extensions on the output score. Default is empty string, but oftentimes '-' (a
+        dash) is used.
 
         
         
@@ -495,7 +501,7 @@ class FiguredBassLine(object):
                 segmentList.append(correspondingSegment)                
         #!---------- Original code - Accommodates a tuple (figured bass)  --------!
         else:
-            (bassLine, segmentList) = self.retrieveSegments(fbRules, numParts, maxPitch, harmonicBeat)      
+            (bassLine, segmentList) = self.retrieveSegments(fbRules, numParts, maxPitch, harmonicBeat, extensionString)      
 
         if len(segmentList) >= 2 and len(bassLine.flat.notes) >= 2:
             for segmentIndex in range(len(segmentList) - 1):
