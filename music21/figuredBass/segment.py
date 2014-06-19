@@ -27,6 +27,7 @@ from music21 import exceptions21
 from music21 import note
 from music21 import pitch
 from music21 import scale
+from music21 import interval
 from music21.figuredBass import possibility
 from music21.figuredBass import realizerScale
 from music21.figuredBass import resolution
@@ -39,7 +40,8 @@ _defaultRealizerScale = None
 class Segment(object):
     _DOC_ORDER = ['allSinglePossibilities', 'singlePossibilityRules', 'allCorrectSinglePossibilities',
                   'consecutivePossibilityRules', 'specialResolutionRules', 'allCorrectConsecutivePossibilities',
-                  'resolveDominantSeventhSegment', 'resolveDiminishedSeventhSegment', 'resolveAugmentedSixthSegment']
+                  'resolveDominantSeventhSegment', 'resolveDiminishedSeventhSegment', 'resolveAugmentedSixthSegment',
+                  'resolve43Suspension']
     _DOC_ATTR = {'bassNote': 'A :class:`~music21.note.Note` whose pitch forms the bass of each possibility.',
                  'numParts': '''The number of parts (including the bass) that possibilities should contain, which 
                  comes directly from :attr:`~music21.figuredBass.rules.Rules.numParts` in the Rules object.''',
@@ -317,10 +319,23 @@ class Segment(object):
         isDiminishedSeventh = self.segmentChord.isDiminishedSeventh()
         isAugmentedSixth = self.segmentChord.isAugmentedSixth()
 
+        #!---------- See if there is a suspension that needs to be resolved ----------!
+        #!---------- This is an explicit version of the checks above, found in chord.py ----------!
+        try:
+            fourth = self.segmentChord.getChordStep(4, testRoot=self.bassNote)
+            fifth = self.segmentChord.getChordStep(5, testRoot=self.bassNote)
+            if fourth is None or fifth is None:
+                is43Suspension = False
+            else:
+                is43Suspension = True
+        except:
+            is43Suspension = False
+
         specialResRules = \
         [(fbRules.resolveDominantSeventhProperly and isDominantSeventh, self.resolveDominantSeventhSegment),
          (fbRules.resolveDiminishedSeventhProperly and isDiminishedSeventh, self.resolveDiminishedSeventhSegment, [fbRules.doubledRootInDim7]),
-         (fbRules.resolveAugmentedSixthProperly and isAugmentedSixth, self.resolveAugmentedSixthSegment)]
+         (fbRules.resolveAugmentedSixthProperly and isAugmentedSixth, self.resolveAugmentedSixthSegment),
+         (is43Suspension, self.resolve43Suspension)]
         
         return specialResRules
         
@@ -525,6 +540,28 @@ class Segment(object):
             self._environRules.warn("Augmented sixth resolution: No proper resolution available. Executing ordinary resolution.")
             return self._resolveOrdinarySegment(segmentB)
     
+    def resolve43Suspension(self, segmentB):
+
+        suspensionChord = self.segmentChord
+        bass = self.bassNote
+        fourth = suspensionChord.getChordStep(4, testRoot=bass)
+        fifth = suspensionChord.getChordStep(5, testRoot=bass)
+        chordInfo = [bass, fourth, fifth]
+
+        resChord = segmentB.segmentChord
+        resBass = segmentB.bassNote
+
+        bassJump = interval.notesToInterval(bass, resBass).directedName # sometimes the bass takes a jump of an octave (up or down)
+
+        suspensionResolutionMethods = \
+        [(resChord.isMajorTriad(), resolution.suspension43ToMajorTriad, [bassJump, chordInfo]),
+         (resChord.isMinorTriad(), resolution.suspension43ToMinorTriad, [bassJump, chordInfo])]
+
+        if fourth != None and resBass.name == bass.name and resChord.getChordStep(5).name == fifth.name and resChord.inversion() == 0:
+            return self._resolveSpecialSegment(segmentB, suspensionResolutionMethods)
+        else:
+            return self._resolveOrdinarySegment(segmentB)
+
     def allSinglePossibilities(self):
         '''
         Returns an iterator through a set of naive possibilities for

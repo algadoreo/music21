@@ -697,6 +697,56 @@ def diminishedSeventhToMinorSubdominant(dimPossib, dimChordInfo = None):
             
     return _resolvePitches(dimPossib, howToResolve)
 
+def suspension43ToMajorTriad(susPossib, bassJump = 'P1', chordInfo = None):
+    '''
+    Resolves a 4-3 suspension to a major triad in root position.
+
+    Added by Jason Leung, June 2014
+    '''
+    if chordInfo == None:
+        suspensionChord = chord.Chord(susPossib)
+        bass = suspensionChord.bass()
+        try:
+            fourth = suspensionChord.getChordStep(4, testRoot=bass)
+        except:
+            raise ResolutionException("Possibility is not a 4-3 suspension")
+        fifth = suspensionChord.getChordStep(5, testRoot=bass)
+        chordInfo = [bass, fourth, fifth]
+    [root, fourth, fifth] = chordInfo
+
+    howToResolve = \
+    [(lambda p: p.nameWithOctave == root.nameWithOctave, bassJump),
+    (lambda p: p.name == root.name, 'P1'),
+    (lambda p: p.name == fourth.name, '-m2'),
+    (lambda p: p.name == fifth.name, 'P1')]
+
+    return _resolvePitches(susPossib, howToResolve)
+
+def suspension43ToMinorTriad(susPossib, bassJump = 'P1', chordInfo = None):
+    '''
+    Resolves a 4-3 suspension to a minor triad in root position.
+
+    Added by Jason Leung, June 2014
+    '''
+    if chordInfo == None:
+        suspensionChord = chord.Chord(susPossib)
+        bass = suspensionChord.bass()
+        try:
+            fourth = suspensionChord.getChordStep(4, testRoot=bass)
+        except:
+            raise ResolutionException("Possibility is not a 4-3 suspension")
+        fifth = suspensionChord.getChordStep(5, testRoot=bass)
+        chordInfo = [bass, fourth, fifth]
+    [root, fourth, fifth] = chordInfo
+
+    howToResolve = \
+    [(lambda p: p.nameWithOctave == root.nameWithOctave, bassJump),
+    (lambda p: p.name == root.name, 'p1'),
+    (lambda p: p.name == fourth.name, '-M2'),
+    (lambda p: p.name == fifth.name, 'p1')]
+
+    return _resolvePitches(susPossib, howToResolve)
+
 '''
 transpositionsTable = {}
 def transpose(samplePitch, intervalString):
@@ -766,7 +816,8 @@ _DOC_ORDER = [augmentedSixthToDominant,
               dominantSeventhToMajorSubmediant, dominantSeventhToMinorSubmediant,
               dominantSeventhToMajorSubdominant, dominantSeventhToMinorSubdominant,
               diminishedSeventhToMajorTonic, diminishedSeventhToMinorTonic,
-              diminishedSeventhToMajorSubdominant, diminishedSeventhToMinorSubdominant]
+              diminishedSeventhToMajorSubdominant, diminishedSeventhToMinorSubdominant,
+              suspension43ToMajorTriad, suspension43ToMinorTriad]
 
 #-------------------------------------------------------------------------------
 class ResolutionException(exceptions21.Music21Exception):
