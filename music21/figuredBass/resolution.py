@@ -698,18 +698,23 @@ def diminishedSeventhToMinorSubdominant(dimPossib, dimChordInfo = None):
     return _resolvePitches(dimPossib, howToResolve)
 
 def cadential64(cadPossib, bassJump = 'P1', hasSeventh = False, chordInfo = None):
+    '''
+    Resolves a cadential 6/4 properly by moving upper voices down by step. Deals with both cases
+    where the dominant chord (the second one) is a V triad or a V7.
 
-    [root, fourth, sixth] = chordInfo
+    Added by Jason Leung, June 2014
+    '''
+    [bass, fourth, sixth] = chordInfo
 
     howToResolve = \
-    [(lambda p: p.nameWithOctave == root.nameWithOctave, bassJump),
+    [(lambda p: p == bass, bassJump),
     (lambda p: p.name == fourth.name, '-m2'),
     (lambda p: p.name == sixth.name, '-M2')]
 
     if hasSeventh:
-        howToResolve.append((lambda p: p.name == root.name, '-M2'))
+        howToResolve.append((lambda p: p.name == bass.name, '-M2'))
     else:
-        howToResolve.append((lambda p: p.name == root.name, 'P1'))
+        howToResolve.append((lambda p: p.name == bass.name, 'P1'))
 
     return _resolvePitches(cadPossib, howToResolve)
 
@@ -728,11 +733,11 @@ def suspension43ToMajorTriad(susPossib, bassJump = 'P1', chordInfo = None):
             raise ResolutionException("Possibility is not a 4-3 suspension")
         fifth = suspensionChord.getChordStep(5, testRoot=bass)
         chordInfo = [bass, fourth, fifth]
-    [root, fourth, fifth] = chordInfo
+    [bass, fourth, fifth] = chordInfo
 
     howToResolve = \
-    [(lambda p: p.nameWithOctave == root.nameWithOctave, bassJump),
-    (lambda p: p.name == root.name, 'P1'),
+    [(lambda p: p == bass, bassJump),
+    (lambda p: p.name == bass.name, 'P1'),
     (lambda p: p.name == fourth.name, '-m2'),
     (lambda p: p.name == fifth.name, 'P1')]
 
@@ -753,13 +758,13 @@ def suspension43ToMinorTriad(susPossib, bassJump = 'P1', chordInfo = None):
             raise ResolutionException("Possibility is not a 4-3 suspension")
         fifth = suspensionChord.getChordStep(5, testRoot=bass)
         chordInfo = [bass, fourth, fifth]
-    [root, fourth, fifth] = chordInfo
+    [bass, fourth, fifth] = chordInfo
 
     howToResolve = \
-    [(lambda p: p.nameWithOctave == root.nameWithOctave, bassJump),
-    (lambda p: p.name == root.name, 'p1'),
+    [(lambda p: p == bass, bassJump),
+    (lambda p: p.name == bass.name, 'P1'),
     (lambda p: p.name == fourth.name, '-M2'),
-    (lambda p: p.name == fifth.name, 'p1')]
+    (lambda p: p.name == fifth.name, 'P1')]
 
     return _resolvePitches(susPossib, howToResolve)
 

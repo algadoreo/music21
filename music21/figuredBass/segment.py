@@ -545,7 +545,12 @@ class Segment(object):
             return self._resolveOrdinarySegment(segmentB)
     
     def resolveCadential64(self, segmentB):
+        '''
+        Checks to see if the progression is a cadential 6/4, and resolve properly if so. Deals with both
+        cases where the dominant chord is just a V triad or is a V7.
 
+        Added by Jason Leung, June 2014
+        '''
         sixFourChord = self.segmentChord
         bass = self.bassNote
         fourth = sixFourChord.getChordStep(4, testRoot = bass)
@@ -569,7 +574,11 @@ class Segment(object):
             return self._resolveOrdinarySegment(segmentB)
 
     def resolve43Suspension(self, segmentB):
+        '''
+        Checks to see if the progression is a 4-3 suspension, and resolve properly if so.
 
+        Added by Jason Leung, June 2014
+        '''
         suspensionChord = self.segmentChord
         bass = self.bassNote
         fourth = suspensionChord.getChordStep(4, testRoot=bass)
