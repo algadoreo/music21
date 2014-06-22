@@ -697,6 +697,22 @@ def diminishedSeventhToMinorSubdominant(dimPossib, dimChordInfo = None):
             
     return _resolvePitches(dimPossib, howToResolve)
 
+def cadential64(cadPossib, bassJump = 'P1', hasSeventh = False, chordInfo = None):
+
+    [root, fourth, sixth] = chordInfo
+
+    howToResolve = \
+    [(lambda p: p.nameWithOctave == root.nameWithOctave, bassJump),
+    (lambda p: p.name == fourth.name, '-m2'),
+    (lambda p: p.name == sixth.name, '-M2')]
+
+    if hasSeventh:
+        howToResolve.append((lambda p: p.name == root.name, '-M2'))
+    else:
+        howToResolve.append((lambda p: p.name == root.name, 'P1'))
+
+    return _resolvePitches(cadPossib, howToResolve)
+
 def suspension43ToMajorTriad(susPossib, bassJump = 'P1', chordInfo = None):
     '''
     Resolves a 4-3 suspension to a major triad in root position.

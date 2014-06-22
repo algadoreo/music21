@@ -319,6 +319,9 @@ class Segment(object):
         isDiminishedSeventh = self.segmentChord.isDiminishedSeventh()
         isAugmentedSixth = self.segmentChord.isAugmentedSixth()
 
+        #!---------- See if it's a second inversion triad (for cadential 6/4) ----------!
+        isSecondInversionTriad = (self.segmentChord.inversion() == 2 and self.segmentChord.isTriad())
+
         #!---------- See if there is a suspension that needs to be resolved ----------!
         #!---------- This is an explicit version of the checks above, found in chord.py ----------!
         try:
@@ -335,6 +338,7 @@ class Segment(object):
         [(fbRules.resolveDominantSeventhProperly and isDominantSeventh, self.resolveDominantSeventhSegment),
          (fbRules.resolveDiminishedSeventhProperly and isDiminishedSeventh, self.resolveDiminishedSeventhSegment, [fbRules.doubledRootInDim7]),
          (fbRules.resolveAugmentedSixthProperly and isAugmentedSixth, self.resolveAugmentedSixthSegment),
+         (isSecondInversionTriad, self.resolveCadential64),
          (is43Suspension, self.resolve43Suspension)]
         
         return specialResRules
@@ -540,6 +544,30 @@ class Segment(object):
             self._environRules.warn("Augmented sixth resolution: No proper resolution available. Executing ordinary resolution.")
             return self._resolveOrdinarySegment(segmentB)
     
+    def resolveCadential64(self, segmentB):
+
+        sixFourChord = self.segmentChord
+        bass = self.bassNote
+        fourth = sixFourChord.getChordStep(4, testRoot = bass)
+        sixth = sixFourChord.getChordStep(6, testRoot = bass)
+        chordInfo = [bass, fourth, sixth]
+
+        resChord = segmentB.segmentChord
+        resBass = segmentB.bassNote
+
+        hasSeventh = resChord.isDominantSeventh()
+
+        bassJump = interval.notesToInterval(bass, resBass).directedName # sometimes the bass takes a jump of an octave (usually down)
+
+        cadential64ResolutionMethods = \
+        [((resChord.isMajorTriad() or hasSeventh) and resBass.name == bass.name and resChord.inversion() == 0, resolution.cadential64, [bassJump, hasSeventh, chordInfo])]
+
+        try:
+            return self._resolveSpecialSegment(segmentB, cadential64ResolutionMethods)
+        except SegmentException:
+            self._environRules.warn("Not a cadential 6/4. Executing ordinary resolution.")
+            return self._resolveOrdinarySegment(segmentB)
+
     def resolve43Suspension(self, segmentB):
 
         suspensionChord = self.segmentChord
