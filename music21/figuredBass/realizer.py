@@ -629,10 +629,13 @@ class FiguredBassLine(object):
                 for (possibA, possibBList) in movementsAB.items():
                     movementsAB[possibA] = list(itertools.ifilter(lambda possibB: movementsBC.has_key(possibB), possibBList))
 
-            # for (possibA, possibBList) in movementsAB.items():
-            #!---------- Modification: moved inside previous for loop for consistency ----------!
+            try:
+                movementsAB
+                for (possibA, possibBList) in movementsAB.items():
                     if len(possibBList) == 0:
                         del movementsAB[possibA]
+            except:
+                pass
                     
             segmentList.reverse()
             return True
