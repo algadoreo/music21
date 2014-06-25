@@ -73,6 +73,7 @@ from music21 import chord
 from music21 import exceptions21
 from music21 import interval
 from music21 import pitch
+from music21 import chord
 from music21 import voiceLeading
 
 # SINGLE POSSIBILITY RULE-CHECKING METHODS
@@ -149,6 +150,46 @@ def isIncomplete(possibA, pitchNamesToContain):
         #raise PossibilityException(str(possibA) + " contains pitch names not found in pitchNamesToContain.")
 
     return isIncomplete
+
+def properDoublings(possibA, pitchNamesToContain):
+    '''
+    Returns True if possibA doesn't violate any doubling rules,
+    e.g., doubled leading tones, dissonances, etc.
+
+    Added by Jason Leung, June 2014
+    '''
+    numParts = len(possibA)
+    possibChord = chord.Chord(possibA)
+    bassNote = possibA[-1]
+
+    #!---------- Check second inversion chords: ALWAYS double bass ----------!
+    if numParts >= 4 and possibChord.inversion() == 2:
+        bassPitchOccurrence = 1
+        for givenPitch in possibA[0:-2]: # Bass is the last element, so ignore it
+            bassPitchOccurrence += (givenPitch.name == bassNote.name)
+        if bassPitchOccurrence == 1:
+            return False
+
+    #!---------- Check for doubled leading tones (you don't want those) ----------!
+    leadingTone = 'B'
+    if leadingTone in pitchNamesToContain:
+        leadingToneOccurrence = 0
+        for givenPitch in possibA:
+            leadingToneOccurrence += (givenPitch.name == leadingTone)
+        if leadingToneOccurrence > 1:
+            return False
+
+    #!---------- Check for doubled sevenths (you don't want those either) ----------!
+    rootNote = possibChord.root()
+    seventhName = rootNote.transpose('-M2').name
+    if seventhName in pitchNamesToContain:
+        seventhOccurrence = 0
+        for givenPitch in possibA:
+            seventhOccurrence += (givenPitch.name == seventhName)
+        if seventhOccurrence > 1:
+            return False
+
+    return True
 
 def upperPartsWithinLimit(possibA, maxSemitoneSeparation = 12):
     '''

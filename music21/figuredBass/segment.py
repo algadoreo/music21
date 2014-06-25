@@ -168,7 +168,8 @@ class Segment(object):
         singlePossibRules = \
         [(fbRules.forbidIncompletePossibilities, possibility.isIncomplete, False, [self.pitchNamesInChord]),
          (True, possibility.upperPartsWithinLimit, True, [fbRules.upperPartsMaxSemitoneSeparation]),
-         (fbRules.forbidVoiceCrossing, possibility.voiceCrossing, False)]
+         (fbRules.forbidVoiceCrossing, possibility.voiceCrossing, False),
+         (True, possibility.properDoublings, True, [self.pitchNamesInChord])]
         
         return singlePossibRules
     
