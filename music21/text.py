@@ -24,7 +24,7 @@ from music21 import common
 from music21 import exceptions21
 from music21 import environment
 
-#from music21.ext import six
+from music21.ext import six
 
 _MOD = "text.py"  
 environLocal = environment.Environment(_MOD)
@@ -311,9 +311,15 @@ class TextBoxException(exceptions21.Music21Exception):
 
 #-------------------------------------------------------------------------------
 class TextBox(base.Music21Object, TextFormat):
-    '''A TextBox is arbitrary text that might be positioned anywhere on a page, independent of notes or staffs. A page attribute specifies what page this text is found on; positionVertical and positionHorizontal position the text from the bottom left corner in units of tenths.
+    '''
+    A TextBox is arbitrary text that might be positioned anywhere on a page, 
+    independent of notes or staffs. A page attribute specifies what page this text is found on; 
+    positionVertical and positionHorizontal position the text from the bottom left corner in 
+    units of tenths.
 
-    This object is similar to the TextExpression object, but does not have as many position parameters, enclosure attributes, and the ability to convert to RepeatExpressions and TempoTexts. 
+    This object is similar to the TextExpression object, but does not have as many position 
+    parameters, enclosure attributes, and the ability to convert to 
+    RepeatExpressions and TempoTexts. 
 
     >>> from music21 import text, stream
     >>> y = 1000 # set a fixed vertical distance
@@ -500,11 +506,6 @@ class TextBox(base.Music21Object, TextFormat):
         ''')
 
 
-
-
-
-
-
 #-------------------------------------------------------------------------------
 class LanguageDetector(object):
     '''
@@ -533,10 +534,11 @@ class LanguageDetector(object):
             thisExcerpt = os.path.join(common.getSourceFilePath(),
                                        'languageExcerpts',
                                        languageCode + '.txt')
-            f = open(thisExcerpt)                
-            self.trigrams[languageCode] = Trigram(f.read().split())
-            f.close()
-
+            
+            with open(thisExcerpt) as f:
+                excerptWords = f.read().split()
+                self.trigrams[languageCode] = Trigram(excerptWords)
+            
     def mostLikelyLanguage(self, excerpt):
         '''
         returns the code of the most likely language for a passage, works on 
@@ -547,8 +549,6 @@ class LanguageDetector(object):
         'en'
         >>> ld.mostLikelyLanguage("Ciao come stai? Sono molto lento oggi, ma non so perche.")
         'it'
-
-
         '''
         excTrigram = Trigram(excerpt)
         maxLang = ""
@@ -656,10 +656,11 @@ class Trigram(object):
         pair = u'  '
         if isinstance(excerpt, list):
             for line in excerpt:
-                try:
-                    line = unicode(line, 'utf8') # just in case
-                except (UnicodeDecodeError, NameError): # no unicode in Py3
-                    continue # skip this line
+                if six.PY2:
+                    try:
+                        line = unicode(line, 'utf8') # just in case
+                    except (UnicodeDecodeError, NameError): # no unicode in Py3
+                        continue # skip this line
                 for letter in line.strip() + u' ':
                     d = self.lut.setdefault(pair, {})
                     d[letter] = d.get(letter, 0) + 1
@@ -677,7 +678,8 @@ class Trigram(object):
         total = 0
         for y in self.lut.values():
             total += sum([ x * x for x in y.values() ])
-        self._length = total ** 0.5
+        thisLength = total ** 0.5
+        self._length = thisLength
 
     def similarity(self, other):
         """
@@ -698,6 +700,9 @@ class Trigram(object):
                 for x in a:
                     if x in b:
                         total += a[x] * b[x]
+        
+        #environLocal.warn([self.length, "self"])
+        #environLocal.warn([other.length, "other"])
 
         return float(total) / (self.length * other.length)
 

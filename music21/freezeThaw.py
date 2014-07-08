@@ -69,11 +69,12 @@ exist in the Python namespace.
 
 import codecs
 import copy
-import unittest
+import fractions
 import inspect
+import json
 import os
 import time
-import json
+import unittest
 import zlib
 
 from music21 import base
@@ -615,7 +616,7 @@ class StreamFreezer(StreamFreezeThawBase):
         else:
             return 'pickle'
 
-    def write(self, fmt='pickle', fp=None, zipType=None):
+    def write(self, fmt='pickle', fp=None, zipType=None, **keywords):
         '''
         For a supplied Stream, write a serialized version to
         disk in either 'pickle' or 'jsonpickle' format and
@@ -658,7 +659,7 @@ class StreamFreezer(StreamFreezeThawBase):
             with open(fp, 'wb') as f: # binary
                 f.write(pickleString)
         elif fmt == 'jsonpickle':
-            data = jsonpickle.encode(storage)
+            data = jsonpickle.encode(storage, **keywords)
             if zipType == 'zlib':
                 data = zlib.compress(data)
             with open(fp, 'w') as f:
@@ -671,7 +672,7 @@ class StreamFreezer(StreamFreezeThawBase):
         #self.teardownStream(self.stream)
         return fp
 
-    def writeStr(self, fmt=None):
+    def writeStr(self, fmt=None, **keywords):
         '''
         Convert the object to a pickled/jsonpickled string
         and return the string
@@ -683,7 +684,7 @@ class StreamFreezer(StreamFreezeThawBase):
         if fmt == 'pickle':
             out = pickleMod.dumps(storage, protocol=-1)
         elif fmt == 'jsonpickle':
-            out = jsonpickle.encode(storage)
+            out = jsonpickle.encode(storage, **keywords)
         else:
             raise FreezeThawException('bad StreamFreezer format: %s' % fmt)
 
@@ -1433,7 +1434,8 @@ class JSONFreezer(JSONFreezeThawBase):
 
         for attr in self.jsonAttributes():
             attrValue = getattr(self.storedObject, attr)
-
+            if isinstance(attrValue, fractions.Fraction):
+                attrValue = float(attrValue)
             #environLocal.printDebug(['_getJSON', attr, "hasattr(attrValue, 'json')", hasattr(attrValue, 'json')])
 
             # do not store None values; assume initial/unset state
@@ -1583,9 +1585,9 @@ class JSONFreezer(JSONFreezeThawBase):
           }, 
           "__class__": "music21.note.Note", 
           "__version__": [
-            1, 
-            9, 
-            3
+            2, 
+            0, 
+            0
           ]
         }
         '''

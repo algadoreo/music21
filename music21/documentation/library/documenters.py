@@ -15,6 +15,9 @@ import re
 import types
 import unittest
 
+from music21.ext import six
+if six.PY3:
+    unicode = str # @ReservedAssignment
 
 class Documenter(object):
     '''
@@ -113,22 +116,22 @@ class FunctionDocumenter(ObjectDocumenter):
     ::
 
         >>> from music21 import common, documentation
-        >>> function = common.almostEquals
+        >>> function = common.opFrac
         >>> documenter = documentation.FunctionDocumenter(function)
         >>> documenter
-        <music21.documentation.library.documenters.FunctionDocumenter: music21.common.almostEquals>
+        <music21.documentation.library.documenters.FunctionDocumenter: music21.common.opFrac>
 
     ::
 
         >>> documenter.rstCrossReferenceString
-        ':func:`~music21.common.almostEquals`'
+        ':func:`~music21.common.opFrac`'
 
     ::
 
         >>> for line in documenter.rstAutodocDirectiveFormat:
         ...     line
         ...
-        '.. autofunction:: music21.common.almostEquals'
+        '.. autofunction:: music21.common.opFrac'
         ''
 
     Call the documenter to generate its ReStructuredText format:
@@ -192,7 +195,7 @@ class MemberDocumenter(ObjectDocumenter):
     ### INITIALIZER ###
 
     def __init__(self, referent, memberName, definingClass):
-        assert isinstance(definingClass, (type, types.ClassType))
+        assert isinstance(definingClass, six.class_types)
         ObjectDocumenter.__init__(self, referent)
         self._memberName = memberName
         self._definingClass = definingClass
@@ -364,7 +367,7 @@ class ClassDocumenter(ObjectDocumenter):
     ### INITIALIZER ###
 
     def __init__(self, referent):
-        assert isinstance(referent, (type, types.ClassType)), repr(referent)
+        assert isinstance(referent, six.class_types), repr(referent)
         ObjectDocumenter.__init__(self, referent)
 
         self._baseClasses = tuple(
@@ -445,11 +448,11 @@ class ClassDocumenter(ObjectDocumenter):
         methods.sort(key=keyLambda)
         readonlyProperties.sort(key=keyLambda)
         readwriteProperties.sort(key=keyLambda)
-        for documenters in inheritedMethods.itervalues():
+        for documenters in inheritedMethods.values():
             documenters.sort(key=keyLambda)
-        for documenters in inheritedReadonlyProperties.itervalues():
+        for documenters in inheritedReadonlyProperties.values():
             documenters.sort(key=keyLambda)
-        for documenters in inheritedReadwriteProperties.itervalues():
+        for documenters in inheritedReadwriteProperties.values():
             documenters.sort(key=keyLambda)
 
         self._methods = methods
@@ -540,7 +543,7 @@ class ClassDocumenter(ObjectDocumenter):
             >>> from music21 import documentation, stream
             >>> klass = stream.Stream
             >>> documenter = documentation.ClassDocumenter(klass)
-            >>> for key in sorted(documenter.docAttr.iterkeys()):
+            >>> for key in sorted(list(documenter.docAttr.keys())):
             ...     key
             ...
             'autoSort'
@@ -710,7 +713,11 @@ class ClassDocumenter(ObjectDocumenter):
             music21.base.Music21Object:
             - music21.base.Music21Object.activeSite
             - music21.base.Music21Object.offset
+            - music21.base.Music21Object.offsetFloat
+            - music21.base.Music21Object.offsetRational
             - music21.base.Music21Object.priority
+            - music21.base.Music21Object.quarterLength
+            - music21.base.Music21Object.quarterLengthFloat
             music21.stream.Stream:
             - music21.stream.Stream.atSoundingPitch
             - music21.stream.Stream.duration
@@ -1173,8 +1180,8 @@ class ModuleDocumenter(ObjectDocumenter):
 
     ::
 
-        >>> for reference, referent in sorted(
-        ...     documenter.namesMapping.iteritems()):
+        >>> for reference, referent in sorted(list(
+        ...     documenter.namesMapping.items())):
         ...     print("%s %s" % (reference, referent))
         ...
         ContiguousSegmentOfNotes <music21.documentation.library.documenters.ClassDocumenter: music21.serial.ContiguousSegmentOfNotes>
@@ -1269,7 +1276,7 @@ class ModuleDocumenter(ObjectDocumenter):
             if name.startswith('_'):
                 continue
             named = getattr(self.referent, name)
-            if isinstance(named, (type, types.ClassType)):
+            if isinstance(named, six.class_types):
                 if set(inspect.getmro(named)).intersection(
                     self._ignored_classes):
                     continue
@@ -1309,14 +1316,14 @@ class ModuleDocumenter(ObjectDocumenter):
         '''
         result = []
         classDocumenters = {}
-        for documenter in self.namesMapping.itervalues():
+        for documenter in self.namesMapping.values():
             if isinstance(documenter, ClassDocumenter):
                 classDocumenters[documenter.referent] = documenter
         for referent in self.memberOrder:
             if referent in classDocumenters:
                 result.append(classDocumenters[referent])
                 del(classDocumenters[referent])
-        for documenter in sorted(classDocumenters.itervalues(),
+        for documenter in sorted(classDocumenters.values(),
             key=lambda x: x.referentPackagesystemPath):
             result.append(documenter)
         return result
@@ -1356,14 +1363,14 @@ class ModuleDocumenter(ObjectDocumenter):
         '''
         result = []
         functionDocumenters = {}
-        for documenter in self.namesMapping.itervalues():
+        for documenter in self.namesMapping.values():
             if isinstance(documenter, FunctionDocumenter):
                 functionDocumenters[documenter.referent] = documenter
         for referent in self.memberOrder:
             if referent in functionDocumenters:
                 result.append(functionDocumenters[referent])
                 del(functionDocumenters[referent])
-        for documenter in sorted(functionDocumenters.itervalues(),
+        for documenter in sorted(functionDocumenters.values(),
             key=lambda x: x.referentPackagesystemPath):
             result.append(documenter)
         return result

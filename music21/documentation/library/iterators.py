@@ -14,7 +14,7 @@ import os
 import types
 
 from music21 import common
-
+from music21.ext import six
 
 class Iterator(object):
     '''
@@ -176,7 +176,7 @@ class CodebaseIterator(Iterator):
                 if name.startswith('_'):
                     continue
                 named = getattr(module, name)
-                validTypes = (type, types.ClassType, types.FunctionType)
+                validTypes = six.class_types + (types.FunctionType,)
                 if isinstance(named, validTypes) and \
                     named.__module__ == module.__name__:
                     yield named
@@ -212,7 +212,7 @@ class ClassIterator(Iterator):
 
     def __iter__(self):
         for x in CodebaseIterator(verbose=self.verbose):
-            if isinstance(x, (type, types.ClassType)):
+            if isinstance(x, six.class_types):
                 yield x
         raise StopIteration
 
@@ -234,12 +234,12 @@ class FunctionIterator(Iterator):
         ('music21.abcFormat.translate', 'abcToStreamOpus')
         ('music21.abcFormat.translate', 'abcToStreamPart')
         ('music21.abcFormat.translate', 'abcToStreamScore')
+        ('music21.abcFormat.translate', 'parseTokens')
         ('music21.abcFormat.translate', 'reBar')
         ('music21.analysis.discrete', 'analyzeStream')
         ('music21.analysis.metrical', 'labelBeatDepth')
         ('music21.analysis.metrical', 'thomassenMelodicAccent')
         ('music21.analysis.neoRiemannian', 'L')
-        ('music21.analysis.neoRiemannian', 'LRP_combinations')
 
     '''
 

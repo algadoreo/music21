@@ -42,7 +42,6 @@ See :meth:`~music21.figuredBass.realizer.figuredBassFromStream` for more details
 
 import collections
 import copy
-import itertools
 import random
 import unittest
 
@@ -61,6 +60,9 @@ from music21.figuredBass import notation
 from music21.figuredBass import realizerScale
 from music21.figuredBass import rules
 from music21.figuredBass import segment
+from music21.ext import six
+
+ifilter = six.moves.filter # @UndefinedVariable
 
 _MOD = 'realizer.py'
 
@@ -623,11 +625,11 @@ class FiguredBassLine(object):
                 except:
                     continue
                 #eliminated = []
-                for (possibB, possibCList) in movementsBC.items():
+                for (possibB, possibCList) in list(movementsBC.items()):
                     if len(possibCList) == 0:
                         del movementsBC[possibB]
-                for (possibA, possibBList) in movementsAB.items():
-                    movementsAB[possibA] = list(itertools.ifilter(lambda possibB: movementsBC.has_key(possibB), possibBList))
+                for (possibA, possibBList) in list(movementsAB.items()):
+                    movementsAB[possibA] = list(ifilter(lambda possibB: possibB in movementsBC, possibBList))
 
             try:
                 movementsAB

@@ -25,6 +25,8 @@ import copy
 import unittest
 import sys
 
+from fractions import Fraction
+
 from music21 import base
 
 from music21 import bar
@@ -52,6 +54,7 @@ from music21.stream import timespans
 from music21.stream import timespanAnalysis
 from music21.stream import timespanNode
 
+from music21.common import opFrac
 
 from music21 import environment
 _MOD = "stream.py"
@@ -2088,7 +2091,7 @@ class Stream(base.Music21Object):
 
     #---------------------------------------------------------------------------
     def _recurseRepr(self, thisStream, prefixSpaces=0,
-                    addBreaks=True, addIndent=True):
+                    addBreaks=True, addIndent=True, addEndTimes=False, useMixedNumerals=False):
         '''
         Used by .show('text')
 
@@ -2104,10 +2107,25 @@ class Stream(base.Music21Object):
         >>> post
         '{0.0} <music21.stream.Stream ...> / {0.0} <music21.stream.Stream ...> / {0.0} <music21.note.Note C>'
         '''
+        def singleElement(element, indent, thisStream, addEndTimes, useMixedNumerals):
+            offGet = element.getOffsetBySite(thisStream)
+            if useMixedNumerals:
+                off = common.mixedNumeral(offGet)
+            else:
+                off = common.strTrimFloat(offGet)            
+            if addEndTimes is False:
+                return indent + "{" + off + "} " + element.__repr__()
+            else:
+                ql = offGet + element.duration.quarterLength
+                if useMixedNumerals:
+                    qlStr = common.mixedNumeral(ql)
+                else:
+                    qlStr = common.strTrimFloat(ql)
+                return indent + "{" + off + ' - ' + qlStr + '} ' + element.__repr__()
+            
         msg = []
         insertSpaces = 4
         for element in thisStream:
-            off = common.strTrimFloat(element.getOffsetBySite(thisStream))            
             if addIndent:
                 indent = " " * prefixSpaces
             else:
@@ -2115,12 +2133,15 @@ class Stream(base.Music21Object):
 
             #if isinstance(element, Stream):
             if element.isStream:
-                msg.append(indent + "{" + off + "} " + element.__repr__())
+                msg.append(singleElement(element, indent, thisStream, addEndTimes, useMixedNumerals))
                 msg.append(self._recurseRepr(element,
-                           prefixSpaces + insertSpaces,
-                           addBreaks=addBreaks, addIndent=addIndent))
+                                             prefixSpaces + insertSpaces,
+                                             addBreaks=addBreaks, 
+                                             addIndent=addIndent, 
+                                             addEndTimes=addEndTimes,
+                                             useMixedNumerals=useMixedNumerals))
             else:
-                msg.append(indent + "{" + off + "} " + element.__repr__())
+                msg.append(singleElement(element, indent, thisStream, addEndTimes, useMixedNumerals))
         if addBreaks:
             msg = '\n'.join(msg)
         else: # use a slashs
@@ -2128,16 +2149,26 @@ class Stream(base.Music21Object):
         return msg
 
 
-    def _reprText(self):
+    def _reprText(self, **keywords):
         '''
         Return a text representation. This methods can be overridden by
         subclasses to provide alternative text representations.
 
         This is used by .show('text')
         '''
-        return self._recurseRepr(self)
+        if 'addEndTimes' in keywords:
+            addEndTimes = keywords['addEndTimes']
+        else:
+            addEndTimes = False
+        if 'useMixedNumerals' in keywords:
+            useMixedNumerals = keywords['useMixedNumerals']
+        else:
+            useMixedNumerals = False
+        return self._recurseRepr(self, 
+                                 addEndTimes = addEndTimes, 
+                                 useMixedNumerals = useMixedNumerals)
 
-    def _reprTextLine(self):
+    def _reprTextLine(self, **keywords):
         '''
         Return a text representation without line breaks.
         This methods can be overridden by subclasses to
@@ -2923,13 +2954,13 @@ class Stream(base.Music21Object):
         >>> [el.step for el in out7]
         ['C', 'D']
 
-        
-
         '''
+        offsetStart = opFrac(offsetStart)
         if offsetEnd is None:
             offsetEnd = offsetStart
             zeroLengthSearch = True
         else:
+            offsetEnd = opFrac(offsetEnd)
             if offsetEnd > offsetStart:
                 zeroLengthSearch = False
             else:
@@ -2947,7 +2978,7 @@ class Stream(base.Music21Object):
                 
             dur = e.duration
             offset = e.getOffsetBySite(self)
-            offset = common.cleanupFloat(offset)
+            #offset = common.cleanupFloat(offset)
 
             if offset > offsetEnd:  # anything that ends after the span is definitely out
                 if self.isSorted:
@@ -2957,7 +2988,7 @@ class Stream(base.Music21Object):
                 else:
                     continue
 
-            elementEnd = common.cleanupFloat(offset + dur.quarterLength)
+            elementEnd = opFrac(offset + dur.quarterLength)
             if dur.quarterLength == 0:
                 elementIsZeroLength = True
             else:
@@ -3086,13 +3117,17 @@ class Stream(base.Music21Object):
         #>>> e = stream1.getElementAtOrBefore(21)
         #>>> e
         #<music21.note.Note D4>
+        
         # FAILS, returns the clef!
 
         '''
         # NOTE: this is a performance critical method
         # TODO: need to deal with more than on object the same
         # offset and span from the source
+        
+        # TODO: switch to timespans
         candidates = []
+        offset = opFrac(offset)
         nearestTrailSpan = offset # start with max time
 
         # need both _elements and _endElements
@@ -3101,11 +3136,11 @@ class Stream(base.Music21Object):
             if classList is not None:
                 if not e.isClassOrSubclass(classList):
                     continue
-            span = offset - e.getOffsetBySite(self)
+            span = opFrac(offset - e.getOffsetBySite(self))
             #environLocal.printDebug(['e span check', span, 'offset', offset, 'e.offset', e.offset, 'e.getOffsetBySite(self)', e.getOffsetBySite(self), 'e', e])
-            if (span < -.000000001): # i.e. , span < 0, but with epsilon # the e is after this offset
+            if span < 0: 
                 continue
-            elif common.almostEquals(span, 0):
+            elif span == 0:
                 candidates.append((span, e))
                 nearestTrailSpan = span
             else:
@@ -3154,7 +3189,6 @@ class Stream(base.Music21Object):
         are instances of
         these classes or subclasses of these classes will be returned.
 
-
         >>> stream1 = stream.Stream()
         >>> x = note.Note('D4')
         >>> x.id = 'x'
@@ -3186,6 +3220,7 @@ class Stream(base.Music21Object):
         '''
         # NOTE: this is a performance critical method
         candidates = []
+        offset = opFrac(offset)
         nearestTrailSpan = offset # start with max time
 
         # need both _elements and _endElements
@@ -3194,7 +3229,7 @@ class Stream(base.Music21Object):
             if classList is not None:
                 if not e.isClassOrSubclass(classList):
                     continue
-            span = offset - e.getOffsetBySite(self)
+            span = opFrac(offset - e.getOffsetBySite(self))
             #environLocal.printDebug(['e span check', span, 'offset', offset, 'e.offset', e.offset, 'e.getOffsetBySite(self)', e.getOffsetBySite(self), 'e', e])
             # by forcing <= here, we are sure to get offsets not at zero
             if span <= 0: # the e is after this offset
@@ -3232,8 +3267,6 @@ class Stream(base.Music21Object):
         '''
         Given an element, get the next element.  If classList is specified,
         check to make sure that the element is an instance of the class list
-
-
 
         >>> st1 = stream.Stream()
         >>> n1 = note.Note()
@@ -3298,21 +3331,21 @@ class Stream(base.Music21Object):
         (in other words, you'll need to call list[i][0].getOffsetBySite(self) to
         get the offset)
 
-
+        >>> from pprint import pprint as pp
         >>> s = stream.Stream()
         >>> s.insert(3, note.Note('C'))
         >>> s.insert(4, note.Note('C#'))
         >>> s.insert(4, note.Note('D-'))
-        >>> s.insert(5, note.Note('D'))
+        >>> s.insert(16.0/3, note.Note('D'))
 
         >>> returnList = s.groupElementsByOffset()
         >>> returnList
         [[<music21.note.Note C>], [<music21.note.Note C#>, <music21.note.Note D->], [<music21.note.Note D>]]
 
         >>> returnDict = s.groupElementsByOffset(returnDict = True)
-        >>> returnDict
-        {3.0: [<music21.note.Note C>], 4.0: [<music21.note.Note C#>, <music21.note.Note D->], 5.0: [<music21.note.Note D>]}
-
+        >>> pp(returnDict)
+        {3.0: [<music21.note.Note C>], 4.0: [<music21.note.Note C#>, <music21.note.Note D->], Fraction(16, 3): [<music21.note.Note D>]}
+        
         Test that sorting still works...
 
         >>> s.insert(0, meter.TimeSignature('2/4'))
@@ -3320,12 +3353,10 @@ class Stream(base.Music21Object):
         >>> s.groupElementsByOffset()[0]
         [<music21.clef.TrebleClef>, <music21.meter.TimeSignature 2/4>]
 
-
         it is DEFINITELY a feature that this method does not
         find elements within substreams that have the same
         absolute offset.  See lily.translate for how this is
         useful for finding voices.  For the other behavior, call Stream.flat first or Stream.recurse()
-
         '''
         offsetsRepresented = {}
         for el in self.elements:
@@ -4310,7 +4341,7 @@ class Stream(base.Music21Object):
             if obj is not None:
                 post.append(obj)
 
-        # do nothing if empty
+        # do nothing if empty  
         if len(post) == 0 or post[0].offset > 0:
             pass
         return post
@@ -4666,8 +4697,6 @@ class Stream(base.Music21Object):
         Get a list of all offsets and endtimes
         of notes and rests in this stream.
 
-        Runs common.cleanupFloat() on them.
-
         Helper method for makeChords and Chordify
         run on .flat.notesAndRests
 
@@ -4681,15 +4710,18 @@ class Stream(base.Music21Object):
         >>> p2.insert(5.5, note.Rest())
         >>> s.insert(0, p1)
         >>> s.insert(0, p2)
+        
+        We will get a mix of float and fractions.Fraction() objects
+        
         >>> [str(o) for o in s.flat._uniqueOffsetsAndEndTimes()]
-        ['2.12', '4.0', '4.12', '5.0', '5.3', '5.5', '6.3', '6.5']
+        ['53/25', '4.0', '103/25', '5.0', '53/10', '5.5', '63/10', '6.5']
 
         Limit what is returned:
 
         >>> [str(o) for o in s.flat._uniqueOffsetsAndEndTimes(offsetsOnly = True)]
-        ['2.12', '4.0', '5.3', '5.5']
+        ['53/25', '4.0', '53/10', '5.5']
         >>> [str(o) for o in s.flat._uniqueOffsetsAndEndTimes(endTimesOnly = True)]
-        ['4.12', '5.0', '6.3', '6.5']
+        ['103/25', '5.0', '63/10', '6.5']
 
         And this is useless...  :-)
 
@@ -4700,11 +4732,9 @@ class Stream(base.Music21Object):
         uniqueOffsets = []
         for e in self.elements:
             o = e.getOffsetBySite(self)
-            o = common.cleanupFloat(o)
             if endTimesOnly is not True and o not in uniqueOffsets:
                 uniqueOffsets.append(o)
-            endTime = o + e.duration.quarterLength
-            endTime = common.cleanupFloat(endTime)
+            endTime = opFrac(o + e.duration.quarterLength)
             if offsetsOnly is not True and endTime not in uniqueOffsets:
                 uniqueOffsets.append(endTime)
         #uniqueOffsets = sorted(uniqueOffsets)
@@ -5063,13 +5093,24 @@ class Stream(base.Music21Object):
             >>> p2.insert(5.5, note.Rest())
             >>> s.insert(0, p1)
             >>> s.insert(0, p2)
+            >>> s.show('text', addEndTimes=True)
+            {0.0 - 6.3} <music21.stream.Part part1>
+                {4.0 - 5.0} <music21.note.Note C#>
+                {5.3 - 6.3} <music21.note.Rest rest>
+            {0.0 - 6.5} <music21.stream.Part part2>
+                {2.12 - 4.12} <music21.note.Note D->
+                {5.5 - 6.5} <music21.note.Rest rest>
             >>> cc = s.chordify()
-            >>> cc.show('text')
-            {0.0} <music21.note.Rest rest>
-            {2.12} <music21.chord.Chord D-4>
-            {4.0} <music21.chord.Chord C#4 D-4>
-            {4.12} <music21.chord.Chord C#4>
-            {5.0} <music21.note.Rest rest>
+            >>> cc[3]
+            <music21.chord.Chord C#4>
+            >>> cc[3].duration.quarterLength
+            Fraction(22, 25)
+            >>> cc.show('text', addEndTimes=True)
+            {0.0 - 2.12} <music21.note.Rest rest>
+            {2.12 - 4.0} <music21.chord.Chord D-4>
+            {4.0 - 4.12} <music21.chord.Chord C#4 D-4>
+            {4.12 - 5.0} <music21.chord.Chord C#4>
+            {5.0 - 6.5} <music21.note.Rest rest>
 
         Here's how addPartIdAsGroup works:
 
@@ -5359,8 +5400,8 @@ class Stream(base.Music21Object):
                 else:
                     dur = 0
                 # NOTE: rounding here may cause secondary problems
-                offset = common.cleanupFloat(e.getOffsetBySite(group)) #round(e.getOffsetBySite(group), 8)
-                endTime = common.cleanupFloat(offset + dur)
+                offset = e.getOffsetBySite(group) #round(e.getOffsetBySite(group), 8)
+                endTime = opFrac(offset + dur)
                 # NOTE: used to make a copy.copy of elements here;
                 # this is not necssary b/c making deepcopy of entire Stream
                 thisOffsetMap = _OffsetMap(e, offset, endTime, voiceIndex)
@@ -5730,7 +5771,8 @@ class Stream(base.Music21Object):
         return makeNotation.realizeOrnaments(self)
 
     def extendDuration(self, objName, inPlace=True):
-        '''Given a Stream and an object class name, go through the Stream
+        '''
+        Given a Stream and an object class name, go through the Stream
         and find each instance of the desired object. The time between
         adjacent objects is then assigned to the duration of each object.
         The last duration of the last object is assigned to extend to the
@@ -5747,27 +5789,33 @@ class Stream(base.Music21Object):
 
         >>> dyn = dynamics.Dynamic('ff')
         >>> stream1.insert(15, dyn)
-        >>> sort1 = stream1.sorted
-        >>> sort1[-1].offset # offset of last element
+        >>> stream1[-1].offset # offset of last element
         40.0
-        >>> sort1.duration.quarterLength # total duration
+        >>> stream1.duration.quarterLength # total duration
         41.0
-        >>> len(sort1)
+        >>> len(stream1)
         6
 
-        >>> stream2 = sort1.flat.extendDuration(note.GeneralNote)
+        >>> stream2 = stream1.flat.extendDuration(note.GeneralNote)
         >>> len(stream2)
         6
         >>> stream2[0].duration.quarterLength
         10.0
-        >>> stream2[1].duration.quarterLength # all note durs are 10
+
+        The Dynamic does not affect the second note:
+        
+        >>> stream2[1].offset
         10.0
+        >>> stream2[1].duration.quarterLength
+        10.0
+
         >>> stream2[-1].duration.quarterLength # or extend to end of stream
         1.0
         >>> stream2.duration.quarterLength
         41.0
         >>> stream2[-1].offset
         40.0
+
 
 
         TODO: extendDuration inPlace should be False by default
@@ -6078,7 +6126,7 @@ class Stream(base.Music21Object):
                 continue
             #environLocal.printDebug(['examining', i, e])
             connections = _getNextElements(srcFlat, i,
-                e.getOffsetBySite(srcFlat)+e.duration.quarterLength)
+                e.getOffsetBySite(srcFlat) + e.duration.quarterLength)
             #environLocal.printDebug(['possible conections', connections])
 
             for p in pSrc:
@@ -6541,19 +6589,13 @@ class Stream(base.Music21Object):
             ...     q.insert(i * 10, p)
             ...
 
-        ::
-
             >>> len(q)
             5
 
-        ::
 
             >>> qf = q.flat
             >>> len(qf)
             25
-
-        ::
-
             >>> qf[24].offset
             44.0
 
@@ -6867,7 +6909,11 @@ class Stream(base.Music21Object):
                 candidateOffset = e.getOffsetBySite(self)
                 if highestOffsetSoFar is None or candidateOffset > highestOffsetSoFar:
                     highestOffsetSoFar = candidateOffset
-            self._cache["HighestOffset"] = highestOffsetSoFar
+            
+            if highestOffsetSoFar is not None:
+                self._cache["HighestOffset"] = float(highestOffsetSoFar)
+            else:
+                self._cache["HighestOffset"] = None
         return self._cache["HighestOffset"]
 
     highestOffset = property(_getHighestOffset,
@@ -6929,7 +6975,7 @@ class Stream(base.Music21Object):
             self._cache["HighestTime"] = 0.0
             return 0.0
         else:
-            highestTimeSoFar = 0.0
+            highestTimeSoFar = Fraction(0, 1)
             # TODO: optimize for a faster way of doing this.
             # but cannot simply look at the last element because what if the penultimate element, with a
             # lower offset has a longer duration than the last?
@@ -6944,7 +6990,7 @@ class Stream(base.Music21Object):
                     raise
                 if candidateOffset > highestTimeSoFar:
                     highestTimeSoFar = candidateOffset
-            self._cache["HighestTime"] = highestTimeSoFar
+            self._cache["HighestTime"] = float(highestTimeSoFar)
         return self._cache["HighestTime"]
 
 
@@ -7555,8 +7601,6 @@ class Stream(base.Music21Object):
         optional "inPlace" key is set to True then
         it modifies pitches in place.
 
-
-
         >>> aInterval = interval.Interval('d5')
 
         >>> aStream = corpus.parse('bach/bwv324.xml')
@@ -7655,11 +7699,11 @@ class Stream(base.Music21Object):
 
         # first, get the offset shift requested
         if anchorZero in ['lowest']:
-            offsetShift = returnObj.lowestOffset
+            offsetShift = Fraction(returnObj.lowestOffset)
         elif anchorZero in ['highest']:
-            offsetShift = returnObj.highestOffset
+            offsetShift = Fraction(returnObj.highestOffset)
         elif anchorZero in [None]:
-            offsetShift = 0
+            offsetShift = Fraction(0, 1)
         else:
             raise StreamException('an achorZero value of %s is not accepted' % anchorZero)
 
@@ -7909,7 +7953,8 @@ class Stream(base.Music21Object):
     def sliceByQuarterLengths(self, quarterLengthList, target=None,
         addTies=True, inPlace=False):
         '''
-        Slice all :class:`~music21.duration.Duration` objects on all Notes of this Stream.
+        Slice all :class:`~music21.duration.Duration` objects on all Notes and Rests 
+        of this Stream.
         Duration are sliced according to values provided in `quarterLengthList` list.
         If the sum of these values is less than the Duration, the values are accumulated
         in a loop to try to fill the Duration. If a match cannot be found, an
@@ -7952,10 +7997,9 @@ class Stream(base.Music21Object):
 
         for e in eToProcess:
             # if qlList values are greater than the found duration, skip
-            if sum(quarterLengthList) > e.quarterLength:
+            if opFrac(sum(quarterLengthList)) > e.quarterLength:
                 continue
-            elif not common.almostEquals(sum(quarterLengthList),
-                e.quarterLength, grain=1e-4):
+            elif not opFrac(sum(quarterLengthList)) == e.quarterLength:
                 # try to map a list that is of sufficient duration
                 qlProcess = []
                 i = 0
@@ -7963,16 +8007,15 @@ class Stream(base.Music21Object):
                     qlProcess.append(
                         quarterLengthList[i%len(quarterLengthList)])
                     i += 1
-                    sumQL = sum(qlProcess)
-                    if (common.almostEquals(sumQL, e.quarterLength) or
-                    sumQL >= e.quarterLength):
+                    sumQL = opFrac(sum(qlProcess))
+                    if sumQL >= e.quarterLength:
                         break
             else:
                 qlProcess = quarterLengthList
 
             #environLocal.printDebug(['got qlProcess', qlProcess, 'for element', e, e.quarterLength])
 
-            if not common.almostEquals(sum(qlProcess), e.quarterLength):
+            if not opFrac(sum(qlProcess)) == e.quarterLength:
                 raise StreamException('cannot map quarterLength list into element Duration: %s, %s' % (sum(qlProcess), e.quarterLength))
 
             post = e.splitByQuarterLengths(qlProcess, addTies=addTies)
@@ -7981,7 +8024,7 @@ class Stream(base.Music21Object):
             returnObj.remove(e)
             for eNew in post:
                 returnObj._insertCore(oInsert, eNew)
-                oInsert += eNew.quarterLength
+                oInsert = opFrac(oInsert + eNew.quarterLength)
 
         returnObj._elementsChanged()
         return returnObj
@@ -8071,7 +8114,7 @@ class Stream(base.Music21Object):
         # list of start, start+dur, element, all in abs offset time
         offsetMap = self._getOffsetMap(returnObj)
 
-        offsetList = [common.cleanupFloat(o) for o in offsetList]
+        offsetList = [opFrac(o) for o in offsetList]
 
         for ob in offsetMap:
             # if target is defined, only modify that object
@@ -8080,8 +8123,8 @@ class Stream(base.Music21Object):
                 continue
 
             cutPoints = []
-            oStart = common.cleanupFloat(oStart)
-            oEnd = common.cleanupFloat(oEnd)
+            oStart = opFrac(oStart)
+            oEnd = opFrac(oEnd)
 
             for o in offsetList:
                 if o > oStart and o < oEnd:
@@ -8094,12 +8137,6 @@ class Stream(base.Music21Object):
                 oStartNext = oStart
                 for o in cutPoints:
                     oCut = o - oStartNext
-                    #no longer needed with cleanup floats
-                    #if common.almostEquals(oCut, 0, grain=1e-5):
-                    #    oStartNext = o
-                    #    continue
-                    # set the second part of the remainder to e, so that it
-                    # will be processed with next cut point
                     unused_eComplete, eNext = eNext.splitAtQuarterLength(oCut,
                         retainOrigin=True, addTies=addTies,
                         displayTiedAccidentals=displayTiedAccidentals)
@@ -8635,7 +8672,7 @@ class Stream(base.Music21Object):
                             if e.offset >= lastEnd:  # is not an overlap...
                                 lastStart = e.offset
                                 if hasattr(e, "duration"):
-                                    lastEnd = lastStart + e.duration.quarterLength
+                                    lastEnd = opFrac(lastStart + e.duration.quarterLength)
                                 else:
                                     lastEnd = lastStart
                                 lastWasNone = False
@@ -8664,7 +8701,7 @@ class Stream(base.Music21Object):
                                 if e.offset >= lastEnd:  # is not an overlap...
                                     lastStart = e.offset
                                     if hasattr(e, "duration"):
-                                        lastEnd = lastStart + e.duration.quarterLength
+                                        lastEnd = opFrac(lastStart + e.duration.quarterLength)
                                     else:
                                         lastEnd = lastStart
                                     # this is the case where the last pitch is a
@@ -8682,7 +8719,7 @@ class Stream(base.Music21Object):
                         lastWasNone = True
                         lastPitch = None
                 elif skipRests is True and isinstance(e, note.Rest):
-                    lastEnd = e.offset + e.duration.quarterLength
+                    lastEnd = opFrac(e.offset + e.duration.quarterLength)
 
         if lastWasNone is True:
             returnList.pop() # removes the last-added element
@@ -8771,10 +8808,10 @@ class Stream(base.Music21Object):
                         returnInterval.noteStart = firstNote
                     if endIsChord is False:
                         returnInterval.noteEnd = secondNote
-                    returnInterval.offset = (firstNote.offset +
+                    returnInterval.offset = opFrac(firstNote.offset +
                                      firstNote.duration.quarterLength)
-                    returnInterval.duration = duration.Duration(
-                        secondNote.offset - returnInterval.offset)
+                    returnInterval.duration = duration.Duration(opFrac(
+                        secondNote.offset - returnInterval.offset))
                     returnStream.insert(returnInterval)
 
         return returnStream
@@ -8797,7 +8834,7 @@ class Stream(base.Music21Object):
                 durSpan = (e.offset, e.offset)
             else:
                 dur = e.duration.quarterLength
-                durSpan = (e.offset, e.offset+dur)
+                durSpan = (e.offset, opFrac(e.offset+dur))
             post.append(durSpan)
         # assume this is already sorted
         # index found here will be the same as elementsSorted
@@ -8834,11 +8871,11 @@ class Stream(base.Music21Object):
         if includeEndBoundary:
             # if the start of b is before the end of a
             #if durSpans[1][0] <= durSpans[0][1]:
-            if common.lessThanOrEqual(durSpans[1][0], durSpans[0][1]):
+            if durSpans[1][0] <= durSpans[0][1]:
                 found = True
         else: # do not include coincident boundaries
             #if durSpans[1][0] < durSpans[0][1]:
-            if common.lessThan(durSpans[1][0], durSpans[0][1]):
+            if durSpans[1][0] < durSpans[0][1]:
                 found = True
         return found
 
@@ -8879,8 +8916,8 @@ class Stream(base.Music21Object):
                 dst = durSpanSorted[j]
                 # print(src, dst, self._durSpanOverlap(src, dst, includeEndBoundary))
 
-                # if start times are the same
-                if common.almostEquals(src[0], dst[0]):
+                # if start times are the same (rational comparison; no fudge needed)
+                if src[0] == dst[0]:
                     simultaneityMap[i].append(j)
                 # this function uses common.py comparions methods
                 if self._durSpanOverlap(src, dst, includeEndBoundary):
@@ -8952,7 +8989,7 @@ class Stream(base.Music21Object):
 
 
 
-    def findGaps(self, minimumQuarterLength=.001):
+    def findGaps(self, minimumQuarterLength=None):
         '''
         Returns either (1) a Stream containing Elements
         (that wrap the None object) whose offsets and durations
@@ -8961,21 +8998,20 @@ class Stream(base.Music21Object):
 
         N.B. there may be gaps in the flattened representation of the stream
         but not in the unflattened.  Hence why "isSequence" calls self.flat.isGapless
+        
+        minimumQuarterLength is now DEPRECATED and IGNORED (28 June 2014)
+        TODO: Remove
         '''
         if 'GapStream' in self._cache and self._cache["GapStream"] is not None:
             return self._cache["GapStream"]
 
         sortedElements = self.sorted.elements
         gapStream = self.__class__()
-        highestCurrentEndTime = 0
+        highestCurrentEndTime = 0.0
         for e in sortedElements:
-
             if e.offset > highestCurrentEndTime:
                 gapElement = base.Music21Object() #ElementWrapper(obj = None)
-                gapQuarterLength = e.offset - highestCurrentEndTime
-                if gapQuarterLength <= minimumQuarterLength:
-                    #environLocal.printDebug(['findGaps(): skipping very small gap:', gapQuarterLength])
-                    continue
+                gapQuarterLength = opFrac(e.offset - highestCurrentEndTime)
                 gapElement.duration = duration.Duration()
                 gapElement.duration.quarterLength = gapQuarterLength
                 gapStream.insert(highestCurrentEndTime, gapElement)
@@ -8983,7 +9019,7 @@ class Stream(base.Music21Object):
                 eDur = e.duration.quarterLength
             else:
                 eDur = 0.
-            highestCurrentEndTime = max(highestCurrentEndTime, e.offset + eDur)
+            highestCurrentEndTime = opFrac(max(highestCurrentEndTime, e.offset + eDur))
 
         if len(gapStream) == 0:
             return None
@@ -9146,7 +9182,6 @@ class Stream(base.Music21Object):
         In this example, we create one stream of Qtr, Half, Qtr, and one of Half, Qtr, Qtr.
         There are simultaneous attacks at offset 0.0 (the beginning) and at offset 3.0,
         but not at 1.0 or 2.0:
-
 
 
         >>> st1 = stream.Stream()
@@ -9417,10 +9452,10 @@ class Stream(base.Music21Object):
         else:
             elOffset = el.offset
 
-        otherElements = self.getElementsByOffset(elOffset, elOffset + el.quarterLength, mustBeginInSpan = False)
+        otherElements = self.getElementsByOffset(elOffset, elOffset + el.duration.quarterLength, mustBeginInSpan = False)
 
         otherElements.offset = elOffset
-        otherElements.quarterLength = el.quarterLength
+        otherElements.quarterLength = el.duration.quarterLength
         for thisEl in otherElements:
             thisEl.offset = thisEl.offset - elOffset
 
@@ -11152,7 +11187,7 @@ class Measure(Stream):
         >>> m.barDuration.fullName
         'Dotted Half'
         >>> m.duration.fullName
-        'Whole tied to Quarter (5.0 total QL)'
+        'Whole tied to Quarter (5 total QL)'
         ''')
 
     #---------------------------------------------------------------------------

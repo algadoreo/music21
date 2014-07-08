@@ -17,14 +17,15 @@ import re
 import copy
 import math, sys, os
 import unittest
-import fractions
 import time
 import hashlib
 import random
 import inspect
 import weakref
+from fractions import Fraction # speedup 50% below...
 
 
+from music21 import defaults
 from music21 import exceptions21
 from music21.ext import six
 
@@ -458,7 +459,7 @@ def basicallyEqual(a, b):
 
 basicallyEquals = basicallyEqual
 
-def cleanupFloat(floatNum, maxDenominator=1000):
+def cleanupFloat(floatNum, maxDenominator=defaults.limitOffsetDenominator):
     '''
     Cleans up a floating point number by converting
     it to a fractions.Fraction object limited to
@@ -474,20 +475,190 @@ def cleanupFloat(floatNum, maxDenominator=1000):
     >>> common.cleanupFloat(1.5)
     1.5
 
-    '''
-    # this form only works w/ python2.7
-    #f = fractions.Fraction(floatNum).limit_denominator(maxDenominator)
+    Fractions are passed through silently...
+    
+    >>> import fractions
+    >>> common.cleanupFloat(fractions.Fraction(4, 3))
+    Fraction(4, 3)
 
-    # this works w/ python2.6, 2.7
-    f = fractions.Fraction.from_float(
-        floatNum).limit_denominator(maxDenominator)
-    return float(f)
+    '''
+    if isinstance(floatNum, Fraction):
+        return floatNum # do nothing to fractions
+    else:
+        f = Fraction(floatNum).limit_denominator(maxDenominator)
+        return float(f)
 
 #------------------------------------------------------------------------------
 # Number methods...
 
+DENOM_LIMIT = defaults.limitOffsetDenominator
 
-def mixedNumeral(expr, limitDenominator=100):
+def _preFracLimitDenominator(n, d):
+    '''
+    copied from fractions.limit_denominator.  Their method
+    requires creating three new Fraction instances to get one back. this doesn't create any
+    call before Fraction...
+    
+    DENOM_LIMIT is hardcoded to defaults.limitOffsetDenominator for speed...
+    
+    returns a new n, d...
+    
+    >>> common._preFracLimitDenominator(100001, 300001)
+    (1, 3)
+    >>> from fractions import Fraction
+    >>> Fraction(100000000001, 300000000001).limit_denominator(65535)
+    Fraction(1, 3)
+    >>> Fraction(100001, 300001).limit_denominator(65535)
+    Fraction(1, 3)
+    
+    Timing differences are huge!
+
+    t is timeit.timeit
+    
+    t('Fraction(*common._preFracLimitDenominator(*x.as_integer_ratio()))', 
+       setup='x = 1000001/3000001.; from music21 import common;from fractions import Fraction', 
+       number=100000)
+    1.0814228057861328
+    
+    t('Fraction(x).limit_denominator(65535)', 
+       setup='x = 1000001/3000001.; from fractions import Fraction', 
+       number=100000)
+    7.941488981246948
+    
+    Proof of working...
+    
+    >>> import random
+    >>> myWay = lambda x: Fraction(*common._preFracLimitDenominator(*x.as_integer_ratio()))
+    >>> theirWay = lambda x: Fraction(x).limit_denominator(65535)
+
+    >>> for i in range(50):
+    ...     x = random.random()
+    ...     if myWay(x) != theirWay(x):
+    ...         print "boo: %s, %s, %s" % (x, myWay(x), theirWay(x))
+    
+    (n.b. -- nothing printed)
+    
+    '''
+    nOrg = n
+    dOrg = d
+    if (d <= DENOM_LIMIT):
+        return (n, d)
+    p0, q0, p1, q1 = 0, 1, 1, 0
+    while True:
+        a = n//d
+        q2 = q0+a*q1
+        if q2 > DENOM_LIMIT:
+            break
+        p0, q0, p1, q1 = p1, q1, p0+a*p1, q2
+        n, d = d, n-a*d
+
+    k = (DENOM_LIMIT-q0)//q1
+    bound1n = p0+k*p1
+    bound1d = q0+k*q1
+    bound2n = p1
+    bound2d = q1
+    #s = (0.0 + n)/d
+    bound1minusS = (abs((bound1n * dOrg) - (nOrg * bound1d)), (dOrg * bound1d))
+    bound2minusS = (abs((bound2n * dOrg) - (nOrg * bound2d)), (dOrg * bound2d))
+    difference = (bound1minusS[0] * bound2minusS[1]) - (bound2minusS[0] * bound1minusS[1])
+    if difference > 0:
+        # bound1 is farther from zero than bound2; return bound2
+        return (p1, q1)
+    else:
+        return (p0 + k*p1, q0 + k * q1)
+    
+    
+
+def opFrac(num):
+    '''
+    opFrac -> optionally convert a number to a fraction or back.
+    
+    Important music21 2.x function for working with offsets and quarterLengths
+    
+    Takes in a number (or None) and converts it to a Fraction with denominator
+    less than limitDenominator if it is not binary expressible; otherwise return a float.  
+    Or if the Fraction can be converted back to a binary expressable
+    float then do so.
+    
+    This function should be called often to ensure that values being passed around are floats
+    and ints wherever possible and fractions where needed.
+    
+    The naming of this method violates music21's general rule of no abbreviations, but it
+    is important to make it short enough so that no one will be afraid of calling it often.
+    It also doesn't have a setting for maxDenominator so that it will expand in
+    Code Completion easily. That is to say, this function has been set up to be used, so please
+    use it.
+    
+    
+    >>> from fractions import Fraction
+    >>> defaults.limitOffsetDenominator
+    65535
+    >>> common.opFrac(3)
+    3.0
+    >>> common.opFrac(1.0/3)
+    Fraction(1, 3)
+    >>> common.opFrac(1.0/4)
+    0.25
+    >>> f = Fraction(1,3)
+    >>> common.opFrac(f + f + f)
+    1.0
+    >>> common.opFrac(0.123456789)
+    Fraction(10, 81)
+    >>> common.opFrac(None) is None
+    True
+    '''
+    # This is a performance critical operation, tuned to go as fast as possible.
+    # hence redundancy -- first we check for type (no inheritance) and then we
+    # repeat exact same test with inheritence. Note that the later examples are more verbose
+    t = type(num)
+    if t is float:
+        # quick test of power of whether denominator is a power
+        # of two, and thus representable exactly as a float: can it be
+        # represented w/ a denominator less than DENOM_LIMIT?
+        # this doesn't work:
+        #    (denominator & (denominator-1)) != 0
+        # which is a nice test, but denominator here is always a power of two...
+        #unused_numerator, denominator = num.as_integer_ratio() # too slow
+        ir = num.as_integer_ratio()
+        if ir[1] > DENOM_LIMIT: # slightly faster than hardcoding 65535!
+            return Fraction(*_preFracLimitDenominator(*ir)) # way faster!
+            #return Fraction(*ir).limit_denominator(DENOM_LIMIT) # *ir instead of float -- this happens
+                # internally in Fraction constructor, but is twice as fast...
+        else:
+            return num
+    elif t is int:
+        return num + 0.0 # 8x faster than float(num)
+    elif t is Fraction:
+        d = num._denominator # private access instead of property: 6x faster; may break later...
+        if (d & (d-1)) == 0: # power of two...
+            return num._numerator/(d + 0.0) # 50% faster than float(num)
+        else:
+            return num # leave fraction alone
+    elif num is None:
+        return None
+    
+    # class inheritance only check AFTER ifs...
+    elif isinstance(num, int):
+        return num + 0.0
+    elif isinstance(num, float):
+        ir = num.as_integer_ratio()
+        if ir[1] > DENOM_LIMIT: # slightly faster than hardcoding 65535!
+            return Fraction(*_preFracLimitDenominator(*ir)) # way faster!
+        else:
+            return num
+        
+    elif isinstance(num, Fraction):
+        d = num._denominator # private access instead of property: 6x faster; may break later...
+        if (d & (d-1)) == 0: # power of two...
+            return num._numerator/(d + 0.0) # 50% faster than float(num)
+        else:
+            return num # leave fraction alone
+    else:
+        raise Exception("Cannot convert num: %r" % num)
+        
+
+
+def mixedNumeral(expr, limitDenominator=defaults.limitOffsetDenominator):
     '''
     Returns a string representing a mixedNumeral form of a number
     
@@ -495,14 +666,51 @@ def mixedNumeral(expr, limitDenominator=100):
     '1 1/3'
     >>> common.mixedNumeral(0.333333)
     '1/3'
+    >>> common.mixedNumeral(-1.333333)
+    '-1 1/3'
+    >>> common.mixedNumeral(-0.333333)
+    '-1/3'
+
+    >>> common.mixedNumeral(0)
+    '0'
+    >>> common.mixedNumeral(-0)
+    '0'
+
     
-    >>> common.mixedNumeral(2.0001)
+    Works with Fraction objects too
+    
+    >>> from fractions import Fraction
+    >>> common.mixedNumeral( Fraction(31,7) )
+    '4 3/7'
+    >>> common.mixedNumeral( Fraction(1,5) )
+    '1/5'
+    >>> common.mixedNumeral( Fraction(-1,5) )
+    '-1/5'
+    >>> common.mixedNumeral( Fraction(-31,7) )
+    '-4 3/7'
+    
+    Denominator is limited by default but can be changed.
+    
+    >>> common.mixedNumeral(2.0000001)
     '2'
-    >>> common.mixedNumeral(2.0001, limitDenominator=10000)
-    '2 1/10000'
+    >>> common.mixedNumeral(2.0000001, limitDenominator=10000000)
+    '2 1/10000000'
     '''
-    quotient, remainder = divmod(float(expr), 1.)
-    remainderFrac = fractions.Fraction(remainder).limit_denominator(limitDenominator)
+    if not isinstance(expr, Fraction):        
+        quotient, remainder = divmod(float(expr), 1.)
+        remainderFrac = Fraction(remainder).limit_denominator(limitDenominator)
+        if quotient < -1:
+            quotient += 1
+            remainderFrac = 1 - remainderFrac
+        elif quotient == -1:
+            quotient = 0.0
+            remainderFrac = remainderFrac - 1
+    else:
+        quotient = int(expr)
+        remainderFrac = expr - quotient
+        if (quotient < 0):
+            remainderFrac *= -1
+    
     if quotient:
         if remainderFrac:
             return '{} {}'.format(int(quotient), remainderFrac)
@@ -514,8 +722,8 @@ def mixedNumeral(expr, limitDenominator=100):
     return str(0)
 
 def roundToHalfInteger(num):
-    '''Given a floating-point number, round to the nearest half-integer.
-
+    '''
+    Given a floating-point number, round to the nearest half-integer.
 
     >>> common.roundToHalfInteger(1.2)
     1
@@ -552,12 +760,16 @@ def almostEquals(x, y = 0.0, grain=1e-7):
     >>> common.almostEquals(1.001, 1, grain=0.1)
     True
 
+
     '''
+    # for very small grains, just compare Fractions without converting...
+    if (isinstance(x, Fraction) and isinstance(y, Fraction) and grain <= 5e-6):
+        if x == y:
+            return True
+    
     if abs(x - y) < grain:
         return True
     return False
-
-almostEqual = almostEquals
 
 
 def nearestCommonFraction(x, grain=1e-2):
@@ -586,24 +798,6 @@ def nearestCommonFraction(x, grain=1e-2):
             return v
     return x
 
-
-def greaterThan(x, y = 0.0, grain=1e-7):
-    '''
-    greaterThan returns True if x is greater than and not almostEquals y
-
-
-    >>> common.greaterThan(5, 4)
-    True
-    >>> common.greaterThan(5.05, 5.02)
-    True
-    >>> common.greaterThan(5.000000000005, 5.000000000006)
-    False
-    >>> common.greaterThan(5.000000000006, 5.000000000005)
-    False
-    '''
-    if x < y or almostEquals(x, y, grain):
-        return False
-    return True
 
 def greaterThanOrEqual(x, y=0.0, grain=1e-7):
     '''
@@ -634,59 +828,6 @@ def lessThan(x, y = 0.0, grain=1e-7):
     if x > y or almostEquals(x, y, grain):
         return False
     return True
-
-
-def lessThanOrEqual(x, y = 0.0, grain=1e-7):
-    '''
-    lessThan -- returns True if x is less than and not almostEquals y
-
-
-    >>> common.lessThanOrEqual(4, 4)
-    True
-    >>> common.lessThanOrEqual(5.2, 5.5)
-    True
-    >>> common.lessThanOrEqual(5.2, 5.5)
-    True
-    >>> common.lessThanOrEqual(5.000000000005, 5.000000000006)
-    True
-
-    '''
-    if x < y or almostEquals(x, y, grain):
-        return True
-    return False
-
-
-def isPowerOfTwo(n):
-    '''
-    returns True if argument is either a power of 2 or a reciprocal
-    of a power of 2. Uses almostEquals so that a float whose reminder after
-    taking a log is nearly zero is still True
-
-
-    >>> common.isPowerOfTwo(3)
-    False
-    >>> common.isPowerOfTwo(18)
-    False
-    >>> common.isPowerOfTwo(1024)
-    True
-    >>> common.isPowerOfTwo(1024.01)
-    False
-    >>> common.isPowerOfTwo(1024.00001)
-    True
-
-    OMIT_FROM_DOCS
-    >>> common.isPowerOfTwo(10)
-    False
-    '''
-
-    if n <= 0:
-        return False
-
-    (remainder, unused_throwAway) = math.modf(math.log(n, 2))
-    if (almostEquals(remainder, 0.0)):
-        return True
-    else:
-        return False
 
 
 def nearestMultiple(n, unit):
@@ -924,7 +1065,6 @@ def toUnicode(usrStr):
 def classToClassStr(classObj):
     '''Convert a class object to a class string.
 
-
     >>> common.classToClassStr(note.Note)
     'Note'
     >>> common.classToClassStr(chord.Chord)
@@ -935,7 +1075,6 @@ def classToClassStr(classObj):
 
 def getNumFromStr(usrStr, numbers='0123456789'):
     '''Given a string, extract any numbers. Return two strings, the numbers (as strings) and the remaining characters.
-
 
     >>> common.getNumFromStr('23a')
     ('23', 'a')
@@ -1060,16 +1199,15 @@ def dotMultiplier(dots):
     '''
     dotMultiplier(dots) returns how long to multiply the note length of a note in order to get the note length with n dots
 
-
     >>> common.dotMultiplier(1)
-    1.5
+    Fraction(3, 2)
     >>> common.dotMultiplier(2)
-    1.75
+    Fraction(7, 4)
     >>> common.dotMultiplier(3)
-    1.875
+    Fraction(15, 8)
     '''
     x = (((2**(dots+1.0))-1.0)/(2**dots))
-    return x
+    return Fraction(x)
 
 
 
@@ -1100,7 +1238,7 @@ def decimalToTuplet(decNum):
     Traceback (most recent call last):
     ZeroDivisionError: number must be greater than zero
 
-
+    TODO: replace with fractions...
     '''
 
     def findSimpleFraction(working):
@@ -1262,7 +1400,7 @@ def approximateGCD(values, grain=1e-4):
         # lowest is already a float
         unused_int, floatingValue = divmod(x / lowest, 1.0)
         # if almost an even division
-        if almostEqual(floatingValue, 0.0, grain=grain):
+        if almostEquals(floatingValue, 0.0, grain=grain):
             count += 1
     if count == len(values):
         return lowest

@@ -3400,7 +3400,7 @@ class Test(unittest.TestCase):
             self.assertEqual(targetDur, dstDur)
 
             #environLocal.printDebug(['quantization results:', targetOffset, targetDur])
-
+        from fractions import Fraction as F
 
         procCompare([0.01, .24, .57, .78], [0.25, 0.25, 0.25, 0.25], 
                     [0.0, .25, .5, .75], [0.25, 0.25, 0.25, 0.25], 
@@ -3414,8 +3414,8 @@ class Test(unittest.TestCase):
         procCompare([0.01, .345, .597, 1.02, 1.22], 
                     [0.31, 0.32, 0.33, 0.25, 0.25], 
 
-                    [0.0, 1/3., 2/3., 1.0, 1.25], 
-                    [1/3., 1/3., 1/3., 0.25, 0.25], 
+                    [0.0, F('1/3'), F('2/3'), 1.0, 1.25], 
+                    [F('1/3'), F('1/3'), F('1/3'), 0.25, 0.25], 
 
                     [4, 3]) # snap to .125 and .3333
 
@@ -3423,8 +3423,8 @@ class Test(unittest.TestCase):
         procCompare([0.01, .345, .687, 0.99, 1.28], 
                     [0.31, 0.32, 0.33, 0.22, 0.21], 
 
-                    [0.0, 1/3., 2/3., 1.0, 1.25], 
-                    [1/3., 1/3., 1/3., 0.25, 0.25], 
+                    [0.0, F('1/3'), F('2/3'), 1.0, 1.25], 
+                    [F('1/3'), F('1/3'), F('1/3'), 0.25, 0.25], 
 
                     [8, 3]) # snap to .125 and .3333
 
@@ -3432,8 +3432,8 @@ class Test(unittest.TestCase):
         procCompare([0.03, .335, .677, 1.02, 1.28], 
                     [0.32, 0.35, 0.33, 0.22, 0.21], 
 
-                    [0.0, 1/3., 2/3., 1.0, 1.25], 
-                    [1/3., 1/3., 1/3., 0.25, 0.25], 
+                    [0.0, F('1/3'), F('2/3'), 1.0, 1.25], 
+                    [F('1/3'), F('1/3'), F('1/3'), 0.25, 0.25], 
 
                     [8, 6]) # snap to .125 and .1666666
 
@@ -5847,8 +5847,8 @@ class Test(unittest.TestCase):
         self.assertEqual([n.pitch.accidental.displayStatus for n in m.notes[:5]], [True, False, False, False, True])
         
         raw = m21ToString.fromMusic21Object(m)
-        self.assertEqual(raw.find('<beam number="1">begin</beam>') > 0, True)
-        self.assertEqual(raw.find('<tuplet bracket="yes" placement="above"') > 0, True)
+        self.assertTrue(raw.find('<tuplet bracket="yes" placement="above"') > 0, raw)
+        self.assertTrue(raw.find('<beam number="1">begin</beam>') > 0, raw)
 
     def testMakeNotationByMeasuresB(self):
         from music21 import stream
@@ -6870,22 +6870,45 @@ class Test(unittest.TestCase):
         # TODO: there are still errors in this chordify output
         s = converter.parse(testPrimitive.triplets01)
         #s.parts[0].show()
-        #s.show() 
+        self.maxDiff = None
+        self.assertMultiLineEqual(s.parts[0].getElementsByClass('Measure')[0]._reprText(addEndTimes=True, useMixedNumerals=True), 
+                                  '''{0 - 0} <music21.layout.SystemLayout>
+{0 - 0} <music21.clef.TrebleClef>
+{0 - 0} <music21.key.KeySignature of 2 flats, mode major>
+{0 - 0} <music21.meter.TimeSignature 4/4>
+{0 - 2/3} <music21.note.Note B->
+{2/3 - 1 1/3} <music21.note.Note C>
+{1 1/3 - 2} <music21.note.Note B->
+{2 - 4} <music21.note.Note A>''') 
+        self.assertMultiLineEqual(s.parts[1].getElementsByClass('Measure')[0]._reprText(addEndTimes=True), 
+                                  '''{0.0 - 0.0} <music21.clef.BassClef>
+{0.0 - 0.0} <music21.key.KeySignature of 2 flats, mode major>
+{0.0 - 0.0} <music21.meter.TimeSignature 4/4>
+{0.0 - 4.0} <music21.note.Note B->''') 
         chords = s.chordify()
-        m1 = chords.getElementsByClass('Measure')
-        match = [([str(p) for p in n.pitches], str(round(n.offset, 2)), str(round(n.quarterLength, 3))) for n in m1[0].notes]
+        m1 = chords.getElementsByClass('Measure')[0]
+        self.assertMultiLineEqual(m1._reprText(addEndTimes=True, useMixedNumerals=True), 
+                                  '''{0 - 0} <music21.layout.SystemLayout>
+{0 - 0} <music21.clef.TrebleClef>
+{0 - 0} <music21.key.KeySignature of 2 flats, mode major>
+{0 - 0} <music21.meter.TimeSignature 4/4>
+{0 - 2/3} <music21.chord.Chord B-4 B-2>
+{2/3 - 1 1/3} <music21.chord.Chord C5 B-2>
+{1 1/3 - 2} <music21.chord.Chord B-4 B-2>
+{2 - 4} <music21.chord.Chord A4 B-2>''') 
+        match = [([str(p) for p in n.pitches], str(round(n.offset, 2)), str(round(n.quarterLength, 3))) for n in m1.notes]
         self.assertEqual(str(match), "[(['B-4', 'B-2'], '0.0', '0.667'), " + \
                                      "(['C5', 'B-2'], '0.67', '0.667'), " + \
                                      "(['B-4', 'B-2'], '1.33', '0.667'), " + \
                                      "(['A4', 'B-2'], '2.0', '2.0')]")
 
         #chords.show()
-        raw = m21ToString.fromMusic21Object(m1[0])
-        # there should only be 2 tuplet indications in the produced chords
-        self.assertEqual(raw.count('<tuplet'), 2)
+        raw = m21ToString.fromMusic21Object(m1)
+        # there should only be 2 tuplet indications in the produced chords: start and stop...
+        self.assertEqual(raw.count('<tuplet'), 2, raw)
         # pitch grouping in measure index 1 was not allocated properly
-        for c in chords.getElementsByClass('Chord'):
-            self.assertEqual(len(c), 2)
+        #for c in chords.getElementsByClass('Chord'):
+        #    self.assertEqual(len(c), 2)
 
 
     def testChordifyG(self):
@@ -7223,7 +7246,7 @@ class Test(unittest.TestCase):
         self.assertEqual(str([p.name for p in s.pitches]), "['D', 'D', 'D', 'D', 'B-', 'B-', 'B-', 'B-', 'D', 'D', 'D', 'D']")
         self.assertEqual(len(s.variants), 2)
 
-        # TODO: 
+        # TODO: keep groups
         # we now have 2 variants that have been stripped of their groups
         match = [e.groups for e in s.variants]
         self.assertEqual(str(match), "[['default'], ['default']]")
@@ -7412,10 +7435,10 @@ class Test(unittest.TestCase):
 
 if __name__ == "__main__":
     import music21
-    #import sys
     #'testContextNestedC'
     #'testContextNestedD'
-    #sys.argv.append('testContextNestedD')
+    #import sys
+    #sys.argv.append('testMakeNotationByMeasuresA')
     music21.mainTest(Test)
 
 

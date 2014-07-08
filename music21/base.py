@@ -32,7 +32,7 @@ available after importing music21.
 ::
 
     >>> music21.VERSION_STR
-    '1.9.3'
+    '2.0.0'
 
 Alternatively, after doing a complete import, these classes are available
 under the module "base":
@@ -84,6 +84,9 @@ from music21.sites import SitesException
 from music21 import sites
 from music21 import common
 from music21 import environment
+
+from music21.common import opFrac
+
 _MOD = 'music21.base.py'
 environLocal = environment.Environment(_MOD)
 
@@ -556,6 +559,43 @@ class Music21Object(object):
         The last one (object) will be different in Py2 (__builtin__.object) and Py3 (builtins.object)
         ''')
 
+    #---------------------------
+    # convienence.  used to be in note.Note, but belongs everywhere:
+    def _getQuarterLengthFloat(self):
+        return self.duration.quarterLengthFloat
+
+    def _getQuarterLengthRational(self):
+        return self.duration.quarterLength
+    
+    def _setQuarterLength(self, value):
+        self.duration.quarterLength = value
+
+    quarterLength = property(_getQuarterLengthRational, _setQuarterLength, doc='''
+        Set or Return the Duration as represented in Quarter Length, possibly as a fraction
+
+        note: the setter is identical to .quarterLengthFloat
+
+        >>> n = note.Note()
+        >>> n.quarterLength = 2.0
+        >>> n.quarterLength
+        2.0
+        >>> n.quarterLength = 1.0/3
+        >>> n.quarterLength
+        Fraction(1, 3)
+    ''')
+    quarterLengthFloat = property(_getQuarterLengthFloat, _setQuarterLength,
+        doc = '''Set or Return the Duration as represented in Quarter Length as a float
+
+        >>> n = note.Note()
+        >>> n.quarterLengthFloat = 2.0
+        >>> n.quarterLengthFloat
+        2.0
+        >>> n.quarterLengthFloat = 1.0/3
+        >>> n.quarterLengthFloat
+        0.333...
+        ''')
+
+
     #--------------------------------------------------------------------------
     # look at this object for an atttribute; if not here
     # look up to activeSite
@@ -624,7 +664,7 @@ class Music21Object(object):
 #             if not isinstance(classFilterList, tuple):
 #                 classFilterList = [classFilterList]
 
-    def getOffsetBySite(self, site):
+    def getOffsetBySite(self, site, returnType='rational'):
         '''
         If this class has been registered in a container such as a Stream,
         that container can be provided here, and the offset in that object
@@ -641,9 +681,13 @@ class Music21Object(object):
 
         >>> s1 = stream.Stream()
         >>> s1.id = 'containingStream'
-        >>> s1.insert(20.5, n)
+        >>> s1.insert(20.0/3, n)
         >>> n.getOffsetBySite(s1)
-        20.5
+        Fraction(20, 3)
+        >>> n.getOffsetBySite(s1, returnType='float')
+        6.6666...
+
+
         >>> s2 = stream.Stream()
         >>> s2.id = 'notContainingStream'
         >>> n.getOffsetBySite(s2)
@@ -651,7 +695,7 @@ class Music21Object(object):
         SitesException: The object <music21.note.Note A-> is not in site <music21.stream.Stream notContainingStream>.
         '''
         try:
-            return self.sites.getOffsetBySite(site)
+            return self.sites.getOffsetBySite(site, returnType=returnType)
         except SitesException:
             raise SitesException('The object %r is not in site %r.' % (self, site))
 
@@ -669,7 +713,7 @@ class Music21Object(object):
         >>> a.sites.add(aSite, 20)
         >>> a.setOffsetBySite(aSite, 30)
         >>> a.getOffsetBySite(aSite)
-        30
+        30.0
         '''
         return self.sites.setOffsetBySite(site, value)
 
@@ -1516,9 +1560,8 @@ class Music21Object(object):
         be moved to .sites soon.
         ''')
 
-    def _getOffset(self):
+    def _getOffsetFloatOrRational(self, returnType):
         '''Get the offset for the activeSite.
-
 
         >>> n = note.Note()
         >>> m = stream.Measure()
@@ -1526,14 +1569,19 @@ class Music21Object(object):
         >>> m.insert(3.0, n)
         >>> n.activeSite is m
         True
+        >>> n.offsetFloat
+        3.0
         >>> n.offset
         3.0
-
+        
         Still works...
 
         >>> n._activeSiteId = 3234234
+        >>> n.offsetFloat
+        3.0
         >>> n.offset
         3.0
+
 
         There is a branch that does slow searches.
         See test/testSerialization to have it active.
@@ -1552,22 +1600,22 @@ class Music21Object(object):
 
         if (activeSiteId is not None and
             self.sites.hasSiteId(activeSiteId)):
-            return self.sites.getOffsetBySiteId(activeSiteId)
+            return self.sites.getOffsetBySiteId(activeSiteId, returnType=returnType)
             #return self.sites.coordinates[activeSiteId]['offset']
         elif self.activeSite is None: # assume we want self
             try:
-                return self.sites.getOffsetBySite(None)
-            except SitesException:
-                return 0.0 # might not have a None offset
+                return self.sites.getOffsetBySite(None, returnType=returnType)
+            except SitesException:  # might not have a None offset
+                return 0.0
         else:
             # try to look for it in all objects
             environLocal.printDebug(['doing a manual activeSite search: probably means that ' +
                                      'id(self.activeSite) (%s) is not equal to self._activeSiteId (%r)' % (id(self.activeSite), self._activeSiteId)])
             #environLocal.printDebug(['activeSite', self.activeSite, 'self.sites.hasSiteId(activeSiteId)', self.sites.hasSiteId(activeSiteId)])
             #environLocal.printDebug(['self.hasSite(self.activeSite)', self.hasSite(self.activeSite)])
-
+        
             offset = self.sites.getOffsetByObjectMatch(
-                    self.activeSite)
+                    self.activeSite, returnType=returnType)
             return offset
 
             #environLocal.printDebug(['self.sites', self.sites.siteDict])
@@ -1600,17 +1648,23 @@ class Music21Object(object):
         # of activeSite
         self.sites.setOffsetBySiteId(self._activeSiteId, offset)
 
+    def _getOffset(self):
+        return self._getOffsetFloatOrRational('rational')
+
     offset = property(_getOffset, _setOffset,
         doc = '''
         The offset property sets or returns the position of this object
-        (generally in `quarterLengths`) from the start of its `activeSite`,
+        as a float or fractions.Fraction value
+        (generally in `quarterLengths`), depending on what is representable. 
+        
+        Offsets are measured from the start of the object's `activeSite`,
         that is, the most recently referenced `Stream` or `Stream` subclass such
         as `Part`, `Measure`, or `Voice`.  It is a simpler
-        way of calling `o.getOffsetBySite(o.activeSite)`.
+        way of calling `o.getOffsetBySite(o.activeSite, returnType='rational')`.
 
         If we put a `Note` into a `Stream`, we will see the activeSite changes.
 
-
+        >>> import fractions
         >>> n1 = note.Note("D#3")
         >>> n1.activeSite is None
         True
@@ -1630,10 +1684,10 @@ class Music21Object(object):
         thus the place where `.offset` looks to find its number.
 
         >>> m2 = stream.Measure()
-        >>> m2.insert(20.0, n1)
+        >>> m2.insert(3.0/5, n1)
         >>> m2.number = 5
         >>> n1.offset
-        20.0
+        Fraction(3, 5)
         >>> n1.activeSite is m2
         True
 
@@ -1658,9 +1712,12 @@ class Music21Object(object):
 
         >>> n1 = note.Note()
         >>> n1.id = 'hi'
-        >>> n1.offset = 20
+        >>> n1.offset = 20/3.
         >>> n1.offset
-        20.0
+        Fraction(20, 3)
+        >>> n1.offsetFloat
+        6.666...
+
 
         >>> s1 = stream.Stream()
         >>> s1.append(n1)
@@ -1691,6 +1748,14 @@ class Music21Object(object):
         When in doubt, use `.getOffsetBySite(streamObj)`
         which is safer.
         ''')
+    
+    def _getOffsetRational(self):
+        return self._getOffsetFloatOrRational('rational')
+    def _getOffsetFloat(self):
+        return self._getOffsetFloatOrRational('float')
+
+    offsetFloat = property(_getOffsetFloat, _setOffset, doc='''old style: always returns a float''')
+    offsetRational = property(_getOffsetRational, _setOffset, doc='''synonym for .offset''')
 
     def sortTuple(self, useSite=None):
         '''
@@ -2145,7 +2210,7 @@ class Music21Object(object):
 #         else:
 #             raise Music21ObjectException('cannot yet support writing in the %s format' % fileFormat)
 
-    def _reprText(self):
+    def _reprText(self, **keywords):
         '''
         Return a text representation possible with line
         breaks. This methods can be overridden by subclasses
@@ -2447,11 +2512,10 @@ class Music21Object(object):
         if self.duration is None:
             raise Music21ObjectException('cannot split an element that has a Duration of None')
 
-        if not common.almostEqual(sum(quarterLengthList),
-            self.duration.quarterLength, grain=1e-4):
+        if opFrac(sum(quarterLengthList)) != self.duration.quarterLength:
             raise Music21ObjectException('cannot split by quarter length list that is not equal to the duration of the source: %s, %s' % (quarterLengthList, self.duration.quarterLength))
         # if nothing to do
-        elif (len(quarterLengthList) == 1 and quarterLengthList[0] ==
+        elif (len(quarterLengthList) == 1 and opFrac(quarterLengthList[0]) ==
             self.duration.quarterLength):
             # return a copy of self in a list
             return [copy.deepcopy(self)]
@@ -2461,7 +2525,7 @@ class Music21Object(object):
         post = []
         forceEndTieType = 'stop'
         for i in range(len(quarterLengthList)):
-            ql = quarterLengthList[i]
+            ql = opFrac(quarterLengthList[i])
             e = copy.deepcopy(self)
             e.quarterLength = ql
 

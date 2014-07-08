@@ -500,26 +500,31 @@ class Converter(object):
             dataStr = dataStr.lstrip()
             useFormat, dataStr = self.formatFromHeader(dataStr)
 
+            if six.PY3 and isinstance(dataStr, bytes):
+                dataStrMakeStr = dataStr.decode('utf-8','ignore')
+            else:
+                dataStrMakeStr = dataStr
+
             if useFormat is not None:
                 pass
-            elif dataStr.startswith('<?xml') or dataStr.startswith('musicxml:'):
+            elif dataStrMakeStr.startswith('<?xml') or dataStrMakeStr.lower().startswith('musicxml:'):
                 useFormat = 'musicxml'
-            elif dataStr.startswith('MThd') or dataStr.startswith('midi:'):
+            elif dataStrMakeStr.startswith('MThd') or dataStrMakeStr.lower().startswith('midi:'):
                 useFormat = 'midi'
-            elif dataStr.startswith('!!!') or dataStr.startswith('**') or dataStr.startswith('humdrum:'):
+            elif dataStrMakeStr.startswith('!!!') or dataStrMakeStr.startswith('**') or dataStrMakeStr.lower().startswith('humdrum:'):
                 useFormat = 'humdrum'
-            elif dataStr.lower().startswith('tinynotation:'):
+            elif dataStrMakeStr.lower().startswith('tinynotation:'):
                 useFormat = 'tinyNotation'
 
             # assume MuseData must define a meter and a key
-            elif 'WK#:' in dataStr and 'measure' in dataStr:
+            elif 'WK#:' in dataStrMakeStr and 'measure' in dataStrMakeStr:
                 useFormat = 'musedata'
-            elif 'M:' in dataStr and 'K:' in dataStr:
+            elif 'M:' in dataStrMakeStr and 'K:' in dataStrMakeStr:
                 useFormat = 'abc'
-            elif 'Time Signature:' in dataStr and 'm1' in dataStr:
+            elif 'Time Signature:' in dataStrMakeStr and 'm1' in dataStrMakeStr:
                 useFormat = 'romanText'
             else:
-                raise ConverterException('File not found or no such format found for: %s' % dataStr)
+                raise ConverterException('File not found or no such format found for: %s' % dataStrMakeStr)
 
         self.setSubconverterFromFormat(useFormat)
         self.subConverter.parseData(dataStr, number=number)
@@ -759,8 +764,9 @@ class Converter(object):
         ('sonix', 'AIFF data')
         >>> converter._resetSubconverters() #_DOCS_HIDE    
         '''
-
         dataStrStartLower = dataStr[:20].lower()
+        if six.PY3 and isinstance(dataStrStartLower, bytes):
+            dataStrStartLower = dataStrStartLower.decode('utf-8','ignore')
 
         foundFormat = None
         sclist = self.subconvertersList()
@@ -955,6 +961,11 @@ def parse(value, *args, **keywords):
     else:
         m21Format = None
 
+    if six.PY3 and isinstance(value, bytes):
+        valueStr = value.decode('utf-8', 'ignore')
+    else:
+        valueStr = value
+
     if (common.isListLike(value) and len(value) == 2 and
         value[1] == None and os.path.exists(value[0])):
         # comes from corpus.search
@@ -968,11 +979,11 @@ def parse(value, *args, **keywords):
             value = [value] + list(args)
         return parseData(value, number=number)
     # a midi string, must come before os.path.exists test
-    elif value.startswith('MThd'):
+    elif valueStr.startswith('MThd'):
         return parseData(value, number=number, format=m21Format)
     elif os.path.exists(value):
         return parseFile(value, number=number, format=m21Format, forceSource=forceSource)
-    elif (value.startswith('http://') or value.startswith('https://')):
+    elif (valueStr.startswith('http://') or valueStr.startswith('https://')):
         # its a url; may need to broaden these criteria
         return parseURL(value, number=number, format=m21Format, forceSource=forceSource)
     else:
@@ -1092,14 +1103,34 @@ class TestExternal(unittest.TestCase):
     def testMusicXMLConversion(self):
         from music21.musicxml import testFiles
         for mxString in testFiles.ALL: # @UndefinedVariable
-            a = subConverters.ConverterMusicXML(False)
+            a = subConverters.ConverterMusicXML()
             a.parseData(mxString)
 
     def testMusicXMLTabConversion(self):
         from music21.musicxml import testFiles
+        
         mxString = testFiles.ALL[5] # @UndefinedVariable
-        a = subConverters.ConverterMusicXML(False)
+        a = subConverters.ConverterMusicXML()
         a.parseData(mxString)
+
+        b = parseData(mxString)
+        b.show('text')
+
+        #{0.0} <music21.metadata.Metadata object at 0x04501CD0>
+        #{0.0} <music21.stream.Part Electric Guitar>
+        #    {0.0} <music21.instrument.Instrument P0: Electric Guitar: >
+        #    {0.0} <music21.stream.Measure 0 offset=0.0>
+        #        {0.0} <music21.layout.StaffLayout distance None, staffNumber None, staffSize None, staffLines 6>
+        #        {0.0} <music21.clef.TabClef>
+        #        {0.0} <music21.tempo.MetronomeMark animato Quarter=120.0>
+        #        {0.0} <music21.key.KeySignature of no sharps or flats, mode major>
+        #        {0.0} <music21.meter.TimeSignature 4/4>
+        #        {0.0} <music21.note.Note F>
+        #        {2.0} <music21.note.Note F#>
+        
+        b.show()
+        pass        
+
 
     def testConversionMusicXml(self):
         c = stream.Score()
@@ -1521,8 +1552,11 @@ class Test(unittest.TestCase):
         #environLocal.printDebug(['\nopening fp', fp])
 
         #s.show()
+        from fractions import Fraction as F
         dList = [n.quarterLength for n in s.flat.notesAndRests[:30]]
-        match = [0.5, 0.5, 1.0, 0.5, 0.5, 0.5, 0.5, 1.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.33333333333333331, 0.33333333333333331, 0.33333333333333331, 0.5, 0.5, 1.0]
+        match = [0.5, 0.5, 1.0, 0.5, 0.5, 0.5, 0.5, 1.0, 0.5, 0.5, 
+                 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 
+                 0.5, 0.5, 0.5, 0.5, F(1,3), F(1,3), F(1,3), 0.5, 0.5, 1.0]
         self.assertEqual(dList, match)
 
 

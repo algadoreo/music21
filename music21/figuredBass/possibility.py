@@ -65,8 +65,6 @@ The application of these methods is controlled by corresponding instance variabl
 
 .. note:: The number of parts and maxPitch are universal for a :class:`~music21.figuredBass.realizer.FiguredBassLine`.
 '''
-
-import itertools
 import unittest
 
 from music21 import chord
@@ -75,6 +73,9 @@ from music21 import interval
 from music21 import pitch
 from music21 import chord
 from music21 import voiceLeading
+from music21.ext import six
+
+izip = six.moves.zip # @UndefinedVariable
 
 # SINGLE POSSIBILITY RULE-CHECKING METHODS
 # ----------------------------------------
@@ -374,7 +375,7 @@ def parallelFifths(possibA, possibB):
                 continue
             #Very high probability of ||5, but still not certain.
             pitchQuartet = (lowerPitchA, lowerPitchB, higherPitchA, higherPitchB)
-            if parallelFifthsTable.has_key(pitchQuartet):
+            if pitchQuartet in parallelFifthsTable:
                 hasParallelFifths = parallelFifthsTable[pitchQuartet]
                 if hasParallelFifths:
                     return hasParallelFifths
@@ -455,7 +456,7 @@ def parallelOctaves(possibA, possibB):
                 continue
             #Very high probability of ||8, but still not certain.
             pitchQuartet = (lowerPitchA, lowerPitchB, higherPitchA, higherPitchB)
-            if parallelOctavesTable.has_key(pitchQuartet):
+            if pitchQuartet in parallelOctavesTable:
                 hasParallelOctaves = parallelOctavesTable[pitchQuartet]
                 if hasParallelOctaves:
                     return hasParallelOctaves
@@ -532,7 +533,7 @@ def hiddenFifth(possibA, possibB):
     if abs(highestPitchB.ps - lowestPitchB.ps) % 12 == 7:
         #Very high probability of hidden fifth, but still not certain.
         pitchQuartet = (lowestPitchA, lowestPitchB, highestPitchA, highestPitchB)
-        if hiddenFifthsTable.has_key(pitchQuartet):
+        if pitchQuartet in hiddenFifthsTable:
             hasHiddenFifth = hiddenFifthsTable[pitchQuartet]
             return hasHiddenFifth
         vlq = voiceLeading.VoiceLeadingQuartet(*pitchQuartet)
@@ -595,7 +596,7 @@ def hiddenOctave(possibA, possibB):
     if abs(highestPitchB.ps - lowestPitchB.ps) % 12 == 0:
         #Very high probability of hidden octave, but still not certain.
         pitchQuartet = (lowestPitchA, lowestPitchB, highestPitchA, highestPitchB)
-        if hiddenOctavesTable.has_key(pitchQuartet):
+        if pitchQuartet in hiddenOctavesTable:
             hasHiddenOctave = hiddenOctavesTable[pitchQuartet]
             return hasHiddenOctave
         vlq = voiceLeading.VoiceLeadingQuartet(*pitchQuartet)
@@ -982,7 +983,7 @@ def partPairs(possibA, possibB):
      (<music21.pitch.Pitch C4>, <music21.pitch.Pitch D4>)]
 
     '''
-    return list(itertools.izip(possibA, possibB))
+    return list(izip(possibA, possibB))
 
 # apply a function to one pitch of possibA at a time
 # apply a function to two pitches of possibA at a time
