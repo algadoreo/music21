@@ -615,6 +615,8 @@ class Segment(object):
     def resolveGeneralSeventhChord(self, segmentB):
         '''
         Resolve diatonic seventh chords according to established harmonic sequences
+
+        Added by Jason Leung, July 2014
         '''
         segmentB.fbRules.forbidIncompletePossibilities = False
         
