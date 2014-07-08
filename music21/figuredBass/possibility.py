@@ -151,7 +151,7 @@ def isIncomplete(possibA, pitchNamesToContain):
 
     return isIncomplete
 
-def properDoublings(possibA, pitchNamesToContain):
+def properDoublings(possibA, pitchNamesToContain, leadingTone = 'B'):
     '''
     Returns True if possibA doesn't violate any doubling rules,
     e.g., doubled leading tones, dissonances, etc.
@@ -171,7 +171,6 @@ def properDoublings(possibA, pitchNamesToContain):
             return False
 
     #!---------- Check for doubled leading tones (you don't want those) ----------!
-    leadingTone = 'B'
     if leadingTone in pitchNamesToContain:
         leadingToneOccurrence = 0
         for givenPitch in possibA:

@@ -29,6 +29,7 @@ from music21 import exceptions21
 from music21 import chord
 from music21 import note
 from music21 import stream
+from music21 import interval
 
 def augmentedSixthToDominant(augSixthPossib, augSixthType = None, augSixthChordInfo = None):
     '''
@@ -765,6 +766,45 @@ def suspension43ToMinorTriad(susPossib, bassJump = 'P1', chordInfo = None):
     (lambda p: p.name == bass.name, 'P1'),
     (lambda p: p.name == fourth.name, '-M2'),
     (lambda p: p.name == fifth.name, 'P1')]
+
+    return _resolvePitches(susPossib, howToResolve)
+
+def generalSeventhChord(susPossib, toDominantSeventh = False, toHalfDiminishedSeventh = False, bassJump = 'P4', chordInfo = None):
+    '''
+    Resolves a generic seventh chord
+
+    Added by Jason Leung, July 2014
+    '''
+    if chordInfo == None:
+        seventhChord = chord.Chord(susPossib)
+        bass = seventhChord.bass()
+        seventh = seventhChord.getChordStep(7, testRoot=bass)
+        if seventh == None:
+            raise ResolutionException("Possibility is not a 7th chord")
+        third = seventhChord.getChordStep(3, testRoot=bass)
+        fifth = seventhChord.getChordStep(5, testRoot=bass)
+        chordInfo = [bass, third, fifth, seventh]
+    [bass, third, fifth, seventh] = chordInfo
+
+    complete = (fifth != None)
+    thirdQuality = interval.notesToInterval(bass, third).simpleName
+    fifthQuality = interval.notesToInterval(bass, fifth).simpleName if complete else None
+    seventhQuality = interval.notesToInterval(bass, seventh).simpleName
+
+    howToResolve = \
+    [(lambda p: p == bass, bassJump),
+    (lambda p: p.name == bass.name, 'P1'),
+    (lambda p: p.name == third.name, 'P1')]
+
+    if toHalfDiminishedSeventh or fifthQuality == 'd5':
+        howToResolve.append((lambda p: p.name == fifth.name, '-m2'))
+    elif complete:
+        howToResolve.append((lambda p: p.name == fifth.name, '-M2'))
+
+    if toDominantSeventh:
+        howToResolve.append((lambda p: p.name == seventh.name, '-m2'))
+    else:
+        howToResolve.append((lambda p: p.name == seventh.name, '-M2'))
 
     return _resolvePitches(susPossib, howToResolve)
 

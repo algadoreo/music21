@@ -41,7 +41,7 @@ class Segment(object):
     _DOC_ORDER = ['allSinglePossibilities', 'singlePossibilityRules', 'allCorrectSinglePossibilities',
                   'consecutivePossibilityRules', 'specialResolutionRules', 'allCorrectConsecutivePossibilities',
                   'resolveDominantSeventhSegment', 'resolveDiminishedSeventhSegment', 'resolveAugmentedSixthSegment',
-                  'resolve43Suspension']
+                  'resolve43Suspension', 'resolveGeneralSeventhChord']
     _DOC_ATTR = {'bassNote': 'A :class:`~music21.note.Note` whose pitch forms the bass of each possibility.',
                  'numParts': '''The number of parts (including the bass) that possibilities should contain, which 
                  comes directly from :attr:`~music21.figuredBass.rules.Rules.numParts` in the Rules object.''',
@@ -119,6 +119,9 @@ class Segment(object):
             self.allPitchesAboveBass = None
             self.segmentChord = bassNote
         self._environRules = environment.Environment(_MOD)
+
+        #!---------- Get the leading tone of the key ----------!
+        self.leadingTone = 'B'
     
     #-------------------------------------------------------------------------------
     # EXTERNAL METHODS
@@ -169,7 +172,7 @@ class Segment(object):
         [(fbRules.forbidIncompletePossibilities, possibility.isIncomplete, False, [self.pitchNamesInChord]),
          (True, possibility.upperPartsWithinLimit, True, [fbRules.upperPartsMaxSemitoneSeparation]),
          (fbRules.forbidVoiceCrossing, possibility.voiceCrossing, False),
-         (True, possibility.properDoublings, True, [self.pitchNamesInChord])]
+         (True, possibility.properDoublings, True, [self.pitchNamesInChord, self.leadingTone])]
         
         return singlePossibRules
     
@@ -335,12 +338,21 @@ class Segment(object):
         except:
             is43Suspension = False
 
+        #!---------- Check if it's some other seventh chord ----------!
+        try:
+            # Assume root position for now
+            seventh = self.segmentChord.getChordStep(7, testRoot=self.bassNote)
+            containsSeventh = (seventh != None)
+        except:
+            containsSeventh = False
+
         specialResRules = \
         [(fbRules.resolveDominantSeventhProperly and isDominantSeventh, self.resolveDominantSeventhSegment),
          (fbRules.resolveDiminishedSeventhProperly and isDiminishedSeventh, self.resolveDiminishedSeventhSegment, [fbRules.doubledRootInDim7]),
          (fbRules.resolveAugmentedSixthProperly and isAugmentedSixth, self.resolveAugmentedSixthSegment),
          (isSecondInversionTriad, self.resolveCadential64),
-         (is43Suspension, self.resolve43Suspension)]
+         (is43Suspension, self.resolve43Suspension),
+         (containsSeventh and not (isDominantSeventh or isDiminishedSeventh), self.resolveGeneralSeventhChord)]
         
         return specialResRules
         
@@ -598,6 +610,47 @@ class Segment(object):
         if fourth != None and resBass.name == bass.name and resChord.getChordStep(5).name == fifth.name and resChord.inversion() == 0:
             return self._resolveSpecialSegment(segmentB, suspensionResolutionMethods)
         else:
+            return self._resolveOrdinarySegment(segmentB)
+
+    def resolveGeneralSeventhChord(self, segmentB):
+        '''
+        Resolve diatonic seventh chords according to established harmonic sequences
+        '''
+        segmentB.fbRules.forbidIncompletePossibilities = False
+        
+        seventhChord = self.segmentChord
+        bass = self.bassNote
+        third = seventhChord.getChordStep(3, testRoot=bass)
+        fifth = seventhChord.getChordStep(5, testRoot=bass)
+        seventh = seventhChord.getChordStep(7, testRoot=bass)
+        chordInfo = [bass, third, fifth, seventh]
+
+        resChord = segmentB.segmentChord
+        resBass = segmentB.bassNote
+        resThird = resChord.getChordStep(3, testRoot=resBass)
+        resFifth = resChord.getChordStep(5, testRoot=resBass)
+        resSeventh = resChord.getChordStep(7, testRoot=resBass)
+
+        resComplete = (resFifth != None)
+        resThirdQuality = interval.notesToInterval(resBass, resThird).simpleName
+        resFifthQuality = interval.notesToInterval(resBass, resFifth).simpleName if resComplete else None
+        resSeventhQuality = interval.notesToInterval(resBass, resSeventh).simpleName
+
+        toDominantSeventh = (resThirdQuality == 'M3' and resSeventhQuality == 'm7')
+        toHalfDiminishedSeventh = (resFifthQuality == 'd5' and resSeventhQuality == 'm7')
+
+        seventhSequence = (resSeventh != None)
+
+        bassInterval = interval.notesToInterval(bass, resBass)
+        descendingFifths = (bassInterval.generic.directed == 4 or bassInterval.generic.directed == -5)
+
+        seventhChordResolutionMethods = \
+        [(seventhSequence and descendingFifths, resolution.generalSeventhChord, [toDominantSeventh, toHalfDiminishedSeventh, bassInterval.directedName, chordInfo])]
+
+        try:
+            return self._resolveSpecialSegment(segmentB, seventhChordResolutionMethods)
+        except:
+            self._environRules.warn("Not a known seventh resolution. Executing ordinary resolution.")
             return self._resolveOrdinarySegment(segmentB)
 
     def allSinglePossibilities(self):
