@@ -653,7 +653,8 @@ class Segment(object):
         descendingFifths = (bassInterval.generic.directed == 4 or bassInterval.generic.directed == -5)
 
         seventhChordResolutionMethods = \
-        [(seventhSequence and descendingFifths, resolution.generalSeventhChord, [toDominantSeventh, toHalfDiminishedSeventh, bassInterval.directedName, chordInfo])]
+        [(seventhSequence and descendingFifths, resolution.generalSeventhChord, [toDominantSeventh, toHalfDiminishedSeventh, bassInterval.directedName, chordInfo]),
+         (descendingFifths, resolution.authenticCadence, [resThirdQuality, bassInterval.directedName, chordInfo])]
 
         try:
             return self._resolveSpecialSegment(segmentB, seventhChordResolutionMethods)

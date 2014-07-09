@@ -808,6 +808,46 @@ def generalSeventhChord(susPossib, toDominantSeventh = False, toHalfDiminishedSe
 
     return _resolvePitches(susPossib, howToResolve)
 
+def authenticCadence(susPossib, resThirdQuality = 'M3', bassJump = 'P4', chordInfo = None):
+    '''
+    Resolves an authentic cadence (V-I) properly: leading tones resolve upward and sevenths (if
+    present) resolve downward by step. Works even for incomplete V7 chords (omitted fifth and
+    doubled root).
+
+    resThirdQuality tells whether the resolution is to a major triad ('M3') or minor triad ('m3')
+
+    Added by Jason Leung, July 2014
+    '''
+    if chordInfo == None:
+        seventhChord = chord.Chord(susPossib)
+        bass = seventhChord.bass()
+        third = seventhChord.getChordStep(3, testRoot=bass)
+        fifth = seventhChord.getChordStep(5, testRoot=bass)
+        seventh = seventhChord.getChordStep(7, testRoot=bass)
+        chordInfo = [bass, third, fifth]
+        if seventh != None:
+            chordInfo.append(seventh)
+    [bass, third, fifth] = chordInfo[0:3]
+    seventh = chordInfo[3] if len(chordInfo) >= 4 else None
+
+    complete = (fifth != None)
+
+    howToResolve = \
+    [(lambda p: p == bass, bassJump),
+    (lambda p: p.name == bass.name, 'P1'),
+    (lambda p: p.name == third.name, 'm2')]
+
+    if complete:
+        howToResolve.append((lambda p: p.name == fifth.name, '-M2'))
+
+    if seventh != None:
+        if resThirdQuality == 'M3':
+            howToResolve.append((lambda p: p.name == seventh.name, '-m2'))
+        elif resThirdQuality == 'm3':
+            howToResolve.append((lambda p: p.name == seventh.name, '-M2'))
+
+    return _resolvePitches(susPossib, howToResolve)
+
 '''
 transpositionsTable = {}
 def transpose(samplePitch, intervalString):
@@ -878,7 +918,8 @@ _DOC_ORDER = [augmentedSixthToDominant,
               dominantSeventhToMajorSubdominant, dominantSeventhToMinorSubdominant,
               diminishedSeventhToMajorTonic, diminishedSeventhToMinorTonic,
               diminishedSeventhToMajorSubdominant, diminishedSeventhToMinorSubdominant,
-              suspension43ToMajorTriad, suspension43ToMinorTriad]
+              suspension43ToMajorTriad, suspension43ToMinorTriad,
+              generalSeventhChord, authenticCadence]
 
 #-------------------------------------------------------------------------------
 class ResolutionException(exceptions21.Music21Exception):
