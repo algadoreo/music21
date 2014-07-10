@@ -166,7 +166,7 @@ def properDoublings(possibA, pitchNamesToContain, leadingTone = None):
     #!---------- Check second inversion chords: ALWAYS double bass ----------!
     if numParts >= 4 and possibChord.inversion() == 2:
         bassPitchOccurrence = 1
-        for givenPitch in possibA[0:-2]: # Bass is the last element, so ignore it
+        for givenPitch in possibA[0:-1]: # Bass is the last element, so ignore it
             bassPitchOccurrence += (givenPitch.name == bassNote.name)
         if bassPitchOccurrence == 1:
             return False
