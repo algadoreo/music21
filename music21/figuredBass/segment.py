@@ -127,7 +127,7 @@ class Segment(object):
         self._environRules = environment.Environment(_MOD)
 
         #!---------- Get the leading tone of the key ----------!
-        self.leadingTone = 'B'
+        self.leadingTone = None
     
     #-------------------------------------------------------------------------------
     # EXTERNAL METHODS
@@ -620,7 +620,9 @@ class Segment(object):
 
     def resolveGeneralSeventhChord(self, segmentB):
         '''
-        Resolve diatonic seventh chords according to established harmonic sequences
+        Resolve diatonic seventh chords according to established harmonic sequences.
+        If the resolution chord (i.e. segmentB) is a triad, the current seventh chord is
+        assumed to be of dominant harmony – the third will be taken as the leading tone.
 
         Added by Jason Leung, July 2014
         '''
@@ -648,6 +650,8 @@ class Segment(object):
         toHalfDiminishedSeventh = (resFifthQuality == 'd5' and resSeventhQuality == 'm7')
 
         seventhSequence = (resSeventh != None)
+        if not seventhSequence:
+            self.leadingTone = third.name
 
         bassInterval = interval.notesToInterval(bass, resBass)
         descendingFifths = (bassInterval.generic.directed == 4 or bassInterval.generic.directed == -5)

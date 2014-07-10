@@ -152,7 +152,7 @@ def isIncomplete(possibA, pitchNamesToContain):
 
     return isIncomplete
 
-def properDoublings(possibA, pitchNamesToContain, leadingTone = 'B'):
+def properDoublings(possibA, pitchNamesToContain, leadingTone = None):
     '''
     Returns True if possibA doesn't violate any doubling rules,
     e.g., doubled leading tones, dissonances, etc.
@@ -994,7 +994,7 @@ def partPairs(possibA, possibB):
 
 
 
-singlePossibilityMethods = [voiceCrossing, isIncomplete, upperPartsWithinLimit, pitchesWithinLimit]
+singlePossibilityMethods = [voiceCrossing, isIncomplete, properDoublings, upperPartsWithinLimit, pitchesWithinLimit]
 #singlePossibilityMethods.sort(None, lambda x: x.__name__)
 consequentPossibilityMethods = [parallelFifths, parallelOctaves, hiddenFifth, hiddenOctave, voiceOverlap, 
                                   partMovementsWithinLimits, upperPartsSame, couldBeItalianA6Resolution]
