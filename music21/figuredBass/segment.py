@@ -337,10 +337,7 @@ class Segment(object):
         try:
             fourth = self.segmentChord.getChordStep(4, testRoot=self.bassNote)
             fifth = self.segmentChord.getChordStep(5, testRoot=self.bassNote)
-            if fourth is None or fifth is None:
-                is43Suspension = False
-            else:
-                is43Suspension = True
+            is43Suspension = not (fourth is None or fifth is None)
         except:
             is43Suspension = False
 
