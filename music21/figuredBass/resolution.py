@@ -848,6 +848,89 @@ def authenticCadence(susPossib, resThirdQuality = 'M3', bassJump = 'P4', chordIn
 
     return _resolvePitches(susPossib, howToResolve)
 
+def deceptiveCadenceToMinor(susPossib, bassJump = 'M2', chordInfo = None):
+    '''
+    Resolves a deceptive cadence (V(7)-vi) properly to a minor triad (i.e. in a major key)
+
+    Added by Jason Leung, July 2014
+    '''
+    if chordInfo == None:
+        domChord = chord.Chord(susPossib)
+        bass = domChord.bass()
+        third = domChord.getChordStep(3)
+        fifth = domChord.getChordStep(5)
+        seventh = domChord.getChordStep(7)
+        chordInfo = [bass, third, fifth]
+        if seventh != None:
+            chordInfo.append(seventh)
+    [bass, third, fifth] = chordInfo[0:3]
+    seventh = chordInfo[3] if len(chordInfo) >= 4 else None
+
+    complete = (fifth != None)
+
+    howToResolve = \
+    [(lambda p: p == bass, bassJump),
+    (lambda p: p.name == bass.name, '-m3'),
+    (lambda p: p.name == third.name, 'm2')]
+
+    if complete:
+        howToResolve.append((lambda p: p.name == fifth.name, '-M2'))
+
+    if seventh != None:
+        howToResolve.append((lambda p: p.name == seventh.name, '-m2'))
+
+    return _resolvePitches(susPossib, howToResolve)
+
+
+def deceptiveCadenceToMajor(susPossib, bassJump = 'm2', chordInfo = None):
+    '''
+    Resolves a deceptive cadence (V(7)-VI) properly to a minor triad (i.e. in a minor key)
+
+    Added by Jason Leung, July 2014
+    '''
+    if chordInfo == None:
+        domChord = chord.Chord(susPossib)
+        bass = domChord.bass()
+        third = domChord.getChordStep(3)
+        fifth = domChord.getChordStep(5)
+        seventh = domChord.getChordStep(7)
+        chordInfo = [bass, third, fifth]
+        if seventh != None:
+            chordInfo.append(seventh)
+    [bass, third, fifth] = chordInfo[0:3]
+    seventh = chordInfo[3] if len(chordInfo) >= 4 else None
+
+    complete = (fifth != None)
+
+    howToResolve = \
+    [(lambda p: p.name == bass.name, '-M3'),
+    (lambda p: p.name == third.name, 'm2')]
+
+    if complete:
+        howToResolve.append((lambda p: p.name == fifth.name, '-M2'))
+
+    if seventh != None:
+        howToResolve.append((lambda p: p.name == seventh.name, '-M2'))
+
+    return _resolvePitches(susPossib, howToResolve)
+
+def sevenSixSuspension(susPossib, bassJump = 'P1', chordInfo = None):
+    '''
+    Creates a 7–6 suspension over the bass; the bass can either be stationary or move down a
+    chromatic step ("diminished unison"). In four voices, the fifth will ALWAYS be omitted in
+    favour of a doubled root.
+
+    Added by Jason Leung, July 2014
+    '''
+    [bass, third, fifth, seventh] = chordInfo
+
+    howToResolve = \
+    [(lambda p: p.name == bass.name, bassJump),
+    (lambda p: p.name == third.name, 'P1'),
+    (lambda p: p.name == seventh.name, '-M2')]
+
+    return _resolvePitches(susPossib, howToResolve)
+
 '''
 transpositionsTable = {}
 def transpose(samplePitch, intervalString):
@@ -919,7 +1002,8 @@ _DOC_ORDER = [augmentedSixthToDominant,
               diminishedSeventhToMajorTonic, diminishedSeventhToMinorTonic,
               diminishedSeventhToMajorSubdominant, diminishedSeventhToMinorSubdominant,
               suspension43ToMajorTriad, suspension43ToMinorTriad,
-              generalSeventhChord, authenticCadence]
+              generalSeventhChord, authenticCadence, deceptiveCadenceToMinor,
+              deceptiveCadenceToMajor, sevenSixSuspension]
 
 #-------------------------------------------------------------------------------
 class ResolutionException(exceptions21.Music21Exception):

@@ -94,6 +94,8 @@ class Rules(object):
         self.forbidIncompletePossibilities = True
         self.upperPartsMaxSemitoneSeparation = 12
         self.forbidVoiceCrossing = True
+        self.checkIfProperSeventhChord = False
+        self.constructIncompleteSeventhChord = False
         
         #Consecutive Possibility rules
         self.forbidParallelFifths = True

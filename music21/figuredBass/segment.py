@@ -47,7 +47,7 @@ class Segment(object):
     _DOC_ORDER = ['allSinglePossibilities', 'singlePossibilityRules', 'allCorrectSinglePossibilities',
                   'consecutivePossibilityRules', 'specialResolutionRules', 'allCorrectConsecutivePossibilities',
                   'resolveDominantSeventhSegment', 'resolveDiminishedSeventhSegment', 'resolveAugmentedSixthSegment',
-                  'resolve43Suspension', 'resolveGeneralSeventhChord']
+                  'resolve43Suspension', 'allowToIncompleteSeventhChords', 'resolveGeneralSeventhChord']
     _DOC_ATTR = {'bassNote': 'A :class:`~music21.note.Note` whose pitch forms the bass of each possibility.',
                  'numParts': '''The number of parts (including the bass) that possibilities should contain, which 
                  comes directly from :attr:`~music21.figuredBass.rules.Rules.numParts` in the Rules object.''',
@@ -128,6 +128,7 @@ class Segment(object):
 
         #!---------- Get the leading tone of the key ----------!
         self.leadingTone = None
+        self.omittedNote = None
     
     #-------------------------------------------------------------------------------
     # EXTERNAL METHODS
@@ -178,7 +179,9 @@ class Segment(object):
         [(fbRules.forbidIncompletePossibilities, possibility.isIncomplete, False, [self.pitchNamesInChord]),
          (True, possibility.upperPartsWithinLimit, True, [fbRules.upperPartsMaxSemitoneSeparation]),
          (fbRules.forbidVoiceCrossing, possibility.voiceCrossing, False),
-         (True, possibility.properDoublings, True, [self.pitchNamesInChord, self.leadingTone])]
+         (True, possibility.properDoublings, True, [self.pitchNamesInChord, self.leadingTone]),
+         (fbRules.checkIfProperSeventhChord, possibility.properSeventhChord, True),
+         (fbRules.constructIncompleteSeventhChord, possibility.incompleteSeventhChord, True, [self.pitchNamesInChord, self.omittedNote])]
         
         return singlePossibRules
     
@@ -355,7 +358,8 @@ class Segment(object):
          (fbRules.resolveAugmentedSixthProperly and isAugmentedSixth, self.resolveAugmentedSixthSegment),
          (isSecondInversionTriad, self.resolveCadential64),
          (is43Suspension, self.resolve43Suspension),
-         (containsSeventh and not (isDominantSeventh or isDiminishedSeventh), self.resolveGeneralSeventhChord)]
+         (containsSeventh and not (isDominantSeventh or isDiminishedSeventh), self.resolveGeneralSeventhChord),
+         (True, self.allowToIncompleteSeventhChords)]
         
         return specialResRules
         
@@ -615,6 +619,21 @@ class Segment(object):
         else:
             return self._resolveOrdinarySegment(segmentB)
 
+    def allowToIncompleteSeventhChords(self, segmentB):
+        '''
+        When moving to a seventh chord (in root position), allow it the possibility of being
+        incomplete – i.e. missing fifth (and doubled root in four (or more) voices).
+
+        Added by Jason Leung, July 2014
+        '''
+        thisChord = self.segmentChord
+        resChord = segmentB.segmentChord
+        triadToRootPositionSeventhChord = (thisChord.isTriad() and resChord.getChordStep(7, testRoot=segmentB.bassNote) != None)
+        segmentB.fbRules.forbidIncompletePossibilities = (not triadToRootPositionSeventhChord)
+        segmentB.fbRules.checkIfProperSeventhChord = triadToRootPositionSeventhChord
+
+        return self._resolveOrdinarySegment(segmentB)
+
     def resolveGeneralSeventhChord(self, segmentB):
         '''
         Resolve diatonic seventh chords according to established harmonic sequences.
@@ -623,6 +642,8 @@ class Segment(object):
 
         Added by Jason Leung, July 2014
         '''
+        self.fbRules.forbidIncompletePossibilities = False
+        self.fbRules.checkIfProperSeventhChord = True
         segmentB.fbRules.forbidIncompletePossibilities = False
         
         seventhChord = self.segmentChord
@@ -652,10 +673,19 @@ class Segment(object):
 
         bassInterval = interval.notesToInterval(bass, resBass)
         descendingFifths = (bassInterval.generic.directed == 4 or bassInterval.generic.directed == -5)
+        toDeceptiveCadence = (bassInterval.generic.directed == 2 and resChord.isTriad() and resChord.inversion() == 0)
+        sevenSixSuspension = (bassInterval.generic.directed == 1 and resChord.isTriad() and resChord.inversion() == 1)
+        if sevenSixSuspension:
+            self.fbRules.forbidIncompletePossibilities = False
+            self.fbRules.constructIncompleteSeventhChord = True
+            self.omittedNote = fifth.name
 
         seventhChordResolutionMethods = \
         [(seventhSequence and descendingFifths, resolution.generalSeventhChord, [toDominantSeventh, toHalfDiminishedSeventh, bassInterval.directedName, chordInfo]),
-         (descendingFifths, resolution.authenticCadence, [resThirdQuality, bassInterval.directedName, chordInfo])]
+         (descendingFifths, resolution.authenticCadence, [resThirdQuality, bassInterval.directedName, chordInfo]),
+         (toDeceptiveCadence and resThirdQuality == 'm3', resolution.deceptiveCadenceToMinor, [bassInterval.directedName, chordInfo]),
+         (toDeceptiveCadence and resThirdQuality == 'M3', resolution.deceptiveCadenceToMajor, [bassInterval.directedName, chordInfo]),
+         (sevenSixSuspension, resolution.sevenSixSuspension, [bassInterval.directedName, chordInfo])]
 
         try:
             return self._resolveSpecialSegment(segmentB, seventhChordResolutionMethods)

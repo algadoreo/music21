@@ -191,6 +191,54 @@ def properDoublings(possibA, pitchNamesToContain, leadingTone = None):
 
     return True
 
+def properSeventhChord(possibA):
+    '''
+    Returns True if possibA is a properly constructed seventh chord – that is, it has at least a root, third,
+    and seventh. In four (or more) voices, if the fifth is omitted, the bass is doubled.
+
+    Added by Jason Leung, July 2014
+    '''
+    numParts = len(possibA)
+    possibChord = chord.Chord(possibA)
+    rootNote = possibChord.root()
+    thirdNote = possibChord.getChordStep(3)
+    fifthNote = possibChord.getChordStep(5)
+    seventhNote = possibChord.getChordStep(7)
+
+    if rootNote == None or thirdNote == None or seventhNote == None:
+        return False
+
+    if numParts >= 4:
+        if fifthNote == None:
+            rootOccurrence = 0
+            for givenPitch in possibA:
+                rootOccurrence += (givenPitch.name == rootNote.name)
+            if rootOccurrence != 2:
+                return False
+
+    return True
+
+def incompleteSeventhChord(possibA, pitchNamesToContain, fifthName = 'D'):
+    '''
+    Returns True if possibA is a properly constructed incomplete seventh chord in four voices – with
+    omitted fifth and doubled root.
+
+    Added by Jason Leung, July 2014
+    '''
+    numParts = len(possibA)
+    bassNoteName = possibA[-1].name
+
+    if numParts == 4:
+        bassPitchOccurrence = 1
+        fifthOccurrence = 0
+        for givenPitch in possibA[0:-1]:
+            bassPitchOccurrence += (givenPitch.name == bassNoteName)
+            fifthOccurrence += (givenPitch.name == fifthName)
+        if bassPitchOccurrence != 2 or fifthOccurrence > 0:
+            return False
+
+    return True
+
 def upperPartsWithinLimit(possibA, maxSemitoneSeparation = 12):
     '''
     Returns True if the pitches in the upper parts of possibA
