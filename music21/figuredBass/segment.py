@@ -653,6 +653,8 @@ class Segment(object):
         seventh = seventhChord.getChordStep(7, testRoot=bass)
         chordInfo = [bass, third, fifth, seventh]
 
+        seventhQuality = interval.notesToInterval(bass, seventh).simpleName
+
         resChord = segmentB.segmentChord
         resBass = segmentB.bassNote
         resThird = resChord.getChordStep(3, testRoot=resBass)
@@ -682,7 +684,7 @@ class Segment(object):
 
         seventhChordResolutionMethods = \
         [(seventhSequence and descendingFifths, resolution.generalSeventhChord, [toDominantSeventh, toHalfDiminishedSeventh, bassInterval.directedName, chordInfo]),
-         (descendingFifths, resolution.authenticCadence, [resThirdQuality, bassInterval.directedName, chordInfo]),
+         (descendingFifths and seventhQuality == 'm7', resolution.authenticCadence, [resThirdQuality, bassInterval.directedName, chordInfo]),
          (toDeceptiveCadence and resThirdQuality == 'm3', resolution.deceptiveCadenceToMinor, [bassInterval.directedName, chordInfo]),
          (toDeceptiveCadence and resThirdQuality == 'M3', resolution.deceptiveCadenceToMajor, [bassInterval.directedName, chordInfo]),
          (sevenSixSuspension, resolution.sevenSixSuspension, [bassInterval.directedName, chordInfo])]
