@@ -705,12 +705,25 @@ def cadential64(cadPossib, bassJump = 'P1', hasSeventh = False, chordInfo = None
 
     Added by Jason Leung, June 2014
     '''
+    if chordInfo == None:
+        sixFourChord = chord.Chord(cadPossib)
+        if not (sixFourChord.isTriad() and sixFourChord.inversion() == 2):
+            raise ResolutionException("Possibility is not a 6/4 chord.")
+        root = sixFourChord.root()
+        third = sixFourChord.getChordStep(3)
+        fifth = sixFourChord.getChordStep(5)
+        chordInfo = [fifth, root, third] # Remember this is equal to a second inversion triad, hence this ordering
     [bass, fourth, sixth] = chordInfo
+    inMinorKey = (interval.notesToInterval(bass, sixth).simpleName == 'm6')
 
     howToResolve = \
     [(lambda p: p == bass, bassJump),
-    (lambda p: p.name == fourth.name, '-m2'),
-    (lambda p: p.name == sixth.name, '-M2')]
+    (lambda p: p.name == fourth.name, '-m2')]
+
+    if inMinorKey:
+        howToResolve.append((lambda p: p.name == sixth.name, '-m2'))
+    else:
+        howToResolve.append((lambda p: p.name == sixth.name, '-M2'))
 
     if hasSeventh:
         howToResolve.append((lambda p: p.name == bass.name, '-M2'))
