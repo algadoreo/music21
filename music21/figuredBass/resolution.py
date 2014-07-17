@@ -698,7 +698,7 @@ def diminishedSeventhToMinorSubdominant(dimPossib, dimChordInfo = None):
             
     return _resolvePitches(dimPossib, howToResolve)
 
-def cadential64(cadPossib, bassJump = 'P1', hasSeventh = False, chordInfo = None):
+def cadential64(cadPossib, bassJump = 'P1', hasSeventh = False, sus4 = False, chordInfo = None):
     '''
     Resolves a cadential 6/4 properly by moving upper voices down by step. Deals with both cases
     where the dominant chord (the second one) is a V triad or a V7.
@@ -717,8 +717,12 @@ def cadential64(cadPossib, bassJump = 'P1', hasSeventh = False, chordInfo = None
     inMinorKey = (interval.notesToInterval(bass, sixth).simpleName == 'm6')
 
     howToResolve = \
-    [(lambda p: p == bass, bassJump),
-    (lambda p: p.name == fourth.name, '-m2')]
+    [(lambda p: p == bass, bassJump)]
+
+    if sus4:
+        howToResolve.append((lambda p: p.name == fourth.name, 'P1'))
+    else:
+        howToResolve.append((lambda p: p.name == fourth.name, '-m2'))
 
     if inMinorKey:
         howToResolve.append((lambda p: p.name == sixth.name, '-m2'))

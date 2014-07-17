@@ -579,13 +579,14 @@ class Segment(object):
 
         resChord = segmentB.segmentChord
         resBass = segmentB.bassNote
-
+        sus4 = (resChord.getChordStep(4, testRoot = resBass) != None and resChord.getChordStep(5, testRoot = resBass) != None)
         hasSeventh = resChord.isDominantSeventh()
 
         bassJump = interval.notesToInterval(bass, resBass).directedName # sometimes the bass takes a jump of an octave (usually down)
 
         cadential64ResolutionMethods = \
-        [((resChord.isMajorTriad() or hasSeventh) and resBass.name == bass.name and resChord.inversion() == 0, resolution.cadential64, [bassJump, hasSeventh, chordInfo])]
+        [((resChord.isMajorTriad() or hasSeventh) and resBass.name == bass.name and resChord.inversion() == 0, resolution.cadential64, [bassJump, hasSeventh, sus4, chordInfo]),
+         (sus4 and resBass.name == bass.name, resolution.cadential64, [bassJump, hasSeventh, sus4, chordInfo])]
 
         try:
             return self._resolveSpecialSegment(segmentB, cadential64ResolutionMethods)
