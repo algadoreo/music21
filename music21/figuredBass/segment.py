@@ -676,7 +676,7 @@ class Segment(object):
 
         bassInterval = interval.notesToInterval(bass, resBass)
         descendingFifths = (bassInterval.generic.directed == 4 or bassInterval.generic.directed == -5)
-        toDeceptiveCadence = (bassInterval.generic.directed == 2 and resChord.isTriad() and resChord.inversion() == 0)
+        toDeceptiveCadence = (bassInterval.generic.simpleDirected == 2 and resChord.isTriad() and resChord.inversion() == 0)
         sevenSixSuspension = (bassInterval.generic.directed == 1 and resChord.isTriad() and resChord.inversion() == 1)
         if sevenSixSuspension:
             self.fbRules.forbidIncompletePossibilities = False
