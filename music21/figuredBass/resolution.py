@@ -736,7 +736,7 @@ def cadential64(cadPossib, bassJump = 'P1', hasSeventh = False, sus4 = False, ch
 
     return _resolvePitches(cadPossib, howToResolve)
 
-def suspension43ToMajorTriad(susPossib, bassJump = 'P1', chordInfo = None):
+def fourThreeSuspensionToMajorTriad(susPossib, bassJump = 'P1', chordInfo = None):
     '''
     Resolves a 4-3 suspension to a major triad in root position.
 
@@ -761,7 +761,7 @@ def suspension43ToMajorTriad(susPossib, bassJump = 'P1', chordInfo = None):
 
     return _resolvePitches(susPossib, howToResolve)
 
-def suspension43ToMinorTriad(susPossib, bassJump = 'P1', chordInfo = None):
+def fourThreeSuspensionToMinorTriad(susPossib, bassJump = 'P1', chordInfo = None):
     '''
     Resolves a 4-3 suspension to a minor triad in root position.
 
@@ -786,9 +786,9 @@ def suspension43ToMinorTriad(susPossib, bassJump = 'P1', chordInfo = None):
 
     return _resolvePitches(susPossib, howToResolve)
 
-def generalSeventhChord(sevPossib, toDominantSeventh = False, toHalfDiminishedSeventh = False, bassJump = 'P4', chordInfo = None):
+def seventhChordDescendingFifths(sevPossib, toDominantSeventh = False, toHalfDiminishedSeventh = False, bassJump = 'P4', chordInfo = None):
     '''
-    Resolves a generic seventh chord
+    Resolves a generic seventh chord to another seventh chord as part of a descending fifths sequence.
 
     Added by Jason Leung, July 2014
     '''
@@ -1031,8 +1031,8 @@ _DOC_ORDER = [augmentedSixthToDominant,
               dominantSeventhToMajorSubdominant, dominantSeventhToMinorSubdominant,
               diminishedSeventhToMajorTonic, diminishedSeventhToMinorTonic,
               diminishedSeventhToMajorSubdominant, diminishedSeventhToMinorSubdominant,
-              suspension43ToMajorTriad, suspension43ToMinorTriad,
-              generalSeventhChord, authenticCadence, deceptiveCadenceToMinor,
+              fourThreeSuspensionToMajorTriad, fourThreeSuspensionToMinorTriad,
+              seventhChordDescendingFifths, authenticCadence, deceptiveCadenceToMinor,
               deceptiveCadenceToMajor, sevenSixSuspension]
 
 #-------------------------------------------------------------------------------

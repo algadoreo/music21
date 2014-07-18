@@ -614,8 +614,8 @@ class Segment(object):
         bassJump = interval.notesToInterval(bass, resBass).directedName # sometimes the bass takes a jump of an octave (up or down)
 
         suspensionResolutionMethods = \
-        [(resChord.isMajorTriad(), resolution.suspension43ToMajorTriad, [bassJump, chordInfo]),
-         (resChord.isMinorTriad(), resolution.suspension43ToMinorTriad, [bassJump, chordInfo])]
+        [(resChord.isMajorTriad(), resolution.fourThreeSuspensionToMajorTriad, [bassJump, chordInfo]),
+         (resChord.isMinorTriad(), resolution.fourThreeSuspensionToMinorTriad, [bassJump, chordInfo])]
 
         if fourth != None and resBass.name == bass.name and resChord.getChordStep(5).name == fifth.name and resChord.inversion() == 0:
             return self._resolveSpecialSegment(segmentB, suspensionResolutionMethods)
@@ -671,7 +671,7 @@ class Segment(object):
             self.omittedNote = fifth.name
 
         seventhChordResolutionMethods = \
-        [(seventhSequence and descendingFifths, resolution.generalSeventhChord, [toDominantSeventh, toHalfDiminishedSeventh, bassInterval.directedName, chordInfo]),
+        [(seventhSequence and descendingFifths, resolution.seventhChordDescendingFifths, [toDominantSeventh, toHalfDiminishedSeventh, bassInterval.directedName, chordInfo]),
          (descendingFifths and seventhQuality == 'm7', resolution.authenticCadence, [resThirdQuality, bassInterval.directedName, chordInfo]),
          (toDeceptiveCadence and resThirdQuality == 'm3', resolution.deceptiveCadenceToMinor, [bassInterval.directedName, chordInfo]),
          (toDeceptiveCadence and resThirdQuality == 'M3', resolution.deceptiveCadenceToMajor, [bassInterval.directedName, chordInfo]),
