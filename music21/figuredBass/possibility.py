@@ -191,6 +191,20 @@ def properDoublings(possibA, pitchNamesToContain, leadingTone = None):
 
     return True
 
+def doubleSpecificNote(possibA, doubledNote = None):
+    '''
+    Returns True if possibA contains the desired doubled note
+
+    Added by Jason Leung, July 2014
+    '''
+    doubledNoteOccurrence = 0
+    for givenPitch in possibA:
+        doubledNoteOccurrence += (givenPitch.name == doubledNote)
+    if doubledNoteOccurrence != 2:
+        return False
+
+    return True
+
 def properSeventhChord(possibA):
     '''
     Returns True if possibA is a properly constructed seventh chord – that is, it has at least a root, third,

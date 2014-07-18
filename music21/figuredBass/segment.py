@@ -47,7 +47,7 @@ class Segment(object):
     _DOC_ORDER = ['allSinglePossibilities', 'singlePossibilityRules', 'allCorrectSinglePossibilities',
                   'consecutivePossibilityRules', 'specialResolutionRules', 'allCorrectConsecutivePossibilities',
                   'resolveDominantSeventhSegment', 'resolveDiminishedSeventhSegment', 'resolveAugmentedSixthSegment',
-                  'resolve43Suspension', 'allowToIncompleteSeventhChords', 'resolveGeneralSeventhChord']
+                  'resolve43Suspension', 'resolveGeneralSeventhChord', 'otherResolutionMethods']
     _DOC_ATTR = {'bassNote': 'A :class:`~music21.note.Note` whose pitch forms the bass of each possibility.',
                  'numParts': '''The number of parts (including the bass) that possibilities should contain, which 
                  comes directly from :attr:`~music21.figuredBass.rules.Rules.numParts` in the Rules object.''',
@@ -128,6 +128,7 @@ class Segment(object):
 
         #!---------- Get the leading tone of the key ----------!
         self.leadingTone = None
+        self.doubledNote = None
         self.omittedNote = None
     
     #-------------------------------------------------------------------------------
@@ -180,6 +181,7 @@ class Segment(object):
          (True, possibility.upperPartsWithinLimit, True, [fbRules.upperPartsMaxSemitoneSeparation]),
          (fbRules.forbidVoiceCrossing, possibility.voiceCrossing, False),
          (True, possibility.properDoublings, True, [self.pitchNamesInChord, self.leadingTone]),
+         (fbRules.specificDoubling, possibility.doubleSpecificNote, True, [self.doubledNote]),
          (fbRules.checkIfProperSeventhChord, possibility.properSeventhChord, True),
          (fbRules.constructIncompleteSeventhChord, possibility.incompleteSeventhChord, True, [self.pitchNamesInChord, self.omittedNote])]
         
@@ -359,7 +361,7 @@ class Segment(object):
          (isSecondInversionTriad, self.resolveCadential64),
          (is43Suspension, self.resolve43Suspension),
          (containsSeventh and not (isDominantSeventh or isDiminishedSeventh), self.resolveGeneralSeventhChord),
-         (True, self.allowToIncompleteSeventhChords)]
+         (True, self.otherResolutionMethods)]
         
         return specialResRules
         
@@ -620,21 +622,6 @@ class Segment(object):
         else:
             return self._resolveOrdinarySegment(segmentB)
 
-    def allowToIncompleteSeventhChords(self, segmentB):
-        '''
-        When moving to a seventh chord (in root position), allow it the possibility of being
-        incomplete – i.e. missing fifth (and doubled root in four (or more) voices).
-
-        Added by Jason Leung, July 2014
-        '''
-        thisChord = self.segmentChord
-        resChord = segmentB.segmentChord
-        triadToRootPositionSeventhChord = (thisChord.isTriad() and resChord.getChordStep(7, testRoot=segmentB.bassNote) != None)
-        segmentB.fbRules.forbidIncompletePossibilities = (not triadToRootPositionSeventhChord)
-        segmentB.fbRules.checkIfProperSeventhChord = triadToRootPositionSeventhChord
-
-        return self._resolveOrdinarySegment(segmentB)
-
     def resolveGeneralSeventhChord(self, segmentB):
         '''
         Resolve diatonic seventh chords according to established harmonic sequences.
@@ -694,6 +681,47 @@ class Segment(object):
             return self._resolveSpecialSegment(segmentB, seventhChordResolutionMethods)
         except:
             self._environRules.warn("Not a known seventh resolution. Executing ordinary resolution.")
+            return self._resolveOrdinarySegment(segmentB)
+
+    def otherResolutionMethods(self, segmentB):
+        '''
+        Other resolution methods include:
+        — Resolution of V–I triad progressions
+        — Resolution of diminished triads (e.g. vii6 in major keys)
+
+        Care is taken to make sure standard doubling rules are followed, e.g. no doubled leading
+        tones, no doubled tritones, etc.
+
+        When moving to a seventh chord (in root position), allow it the possibility of being
+        incomplete – i.e. missing fifth (and doubled root in four (or more) voices).
+
+        Added by Jason Leung, July 2014
+        '''
+        thisChord = self.segmentChord
+        bass = self.bassNote
+        chordInfo = _unpackTriad(thisChord)
+
+        resChord = segmentB.segmentChord
+        resBass = segmentB.bassNote
+        resQuality = resChord.quality
+
+        bassInterval = interval.notesToInterval(bass, resBass)
+        couldBeVIProgression = ((thisChord.isMajorTriad() and thisChord.inversion() == 0) and (resChord.isTriad() and resChord.inversion() == 0) and (bassInterval.directedSimpleName == 'P4' or bassInterval.directedSimpleName == 'P-5'))
+        if couldBeVIProgression:
+            self.leadingTone = chordInfo[2].name # since chordInfo = [bass, root, third, fifth]
+            self.doubledNote = chordInfo[0].name
+            self.fbRules.specificDoubling = True
+
+        triadToRootPositionSeventhChord = (thisChord.isTriad() and resChord.getChordStep(7, testRoot=segmentB.bassNote) != None)
+        segmentB.fbRules.forbidIncompletePossibilities = (not triadToRootPositionSeventhChord)
+        segmentB.fbRules.checkIfProperSeventhChord = triadToRootPositionSeventhChord
+
+        specialResolutionMethods = \
+        [(couldBeVIProgression, resolution.authenticCadence, [resQuality, bassInterval.directedName, chordInfo[1:]])]
+
+        if couldBeVIProgression:
+            return self._resolveSpecialSegment(segmentB, specialResolutionMethods)
+        else:
             return self._resolveOrdinarySegment(segmentB)
 
     def allSinglePossibilities(self):

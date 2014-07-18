@@ -786,14 +786,14 @@ def suspension43ToMinorTriad(susPossib, bassJump = 'P1', chordInfo = None):
 
     return _resolvePitches(susPossib, howToResolve)
 
-def generalSeventhChord(susPossib, toDominantSeventh = False, toHalfDiminishedSeventh = False, bassJump = 'P4', chordInfo = None):
+def generalSeventhChord(sevPossib, toDominantSeventh = False, toHalfDiminishedSeventh = False, bassJump = 'P4', chordInfo = None):
     '''
     Resolves a generic seventh chord
 
     Added by Jason Leung, July 2014
     '''
     if chordInfo == None:
-        seventhChord = chord.Chord(susPossib)
+        seventhChord = chord.Chord(sevPossib)
         bass = seventhChord.bass()
         seventh = seventhChord.getChordStep(7, testRoot=bass)
         if seventh == None:
@@ -823,20 +823,24 @@ def generalSeventhChord(susPossib, toDominantSeventh = False, toHalfDiminishedSe
     else:
         howToResolve.append((lambda p: p.name == seventh.name, '-M2'))
 
-    return _resolvePitches(susPossib, howToResolve)
+    return _resolvePitches(sevPossib, howToResolve)
 
-def authenticCadence(susPossib, resThirdQuality = 'M3', bassJump = 'P4', chordInfo = None):
+def authenticCadence(cadPossib, resThirdQuality = 'M3', bassJump = 'P4', chordInfo = None):
     '''
-    Resolves an authentic cadence (V-I) properly: leading tones resolve upward and sevenths (if
-    present) resolve downward by step. Works even for incomplete V7 chords (omitted fifth and
+    Resolves an authentic cadence (V-I) properly: leading tones tend to resolve upward and sevenths (if
+    present) always resolve downward by step. Works even for incomplete V7 chords (omitted fifth and
     doubled root).
 
-    resThirdQuality tells whether the resolution is to a major triad ('M3') or minor triad ('m3')
+    If the leading tone is in an inner voice, it is allowed to skip down to create a complete tonic
+    (i.e. resolution) chord – this is particularly relevant in applied dominant sequences.
+
+    `resThirdQuality' tells whether the resolution is to a major triad ('major' or 'M3') or minor triad
+    ('minor' or 'm3').
 
     Added by Jason Leung, July 2014
     '''
     if chordInfo == None:
-        seventhChord = chord.Chord(susPossib)
+        seventhChord = chord.Chord(cadPossib)
         bass = seventhChord.bass()
         third = seventhChord.getChordStep(3, testRoot=bass)
         fifth = seventhChord.getChordStep(5, testRoot=bass)
@@ -849,30 +853,39 @@ def authenticCadence(susPossib, resThirdQuality = 'M3', bassJump = 'P4', chordIn
 
     complete = (fifth != None)
 
-    howToResolve = \
-    [(lambda p: p == bass, bassJump),
-    (lambda p: p.name == bass.name, 'P1'),
-    (lambda p: p.name == third.name, 'm2')]
+    if complete and cadPossib[0].name == fifth.name:
+        howToResolve = \
+        [(lambda p: p == bass, bassJump),
+        (lambda p: p.name == bass.name and resThirdQuality == 'major', '-m3'),
+        (lambda p: p.name == bass.name and resThirdQuality == 'minor', '-M3'),
+        (lambda p: p.name == third.name, '-M3'),
+        (lambda p: p.name == fifth.name, '-M2')]
+    else:
+        howToResolve = \
+        [(lambda p: p == bass, bassJump),
+        (lambda p: p.name == bass.name, 'P1'),
+        (lambda p: p.name == third.name, 'm2')]
 
-    if complete:
-        howToResolve.append((lambda p: p.name == fifth.name, '-M2'))
+        if complete:
+            howToResolve.append((lambda p: p.name == fifth.name and resThirdQuality == 'major', 'M2'))
+            howToResolve.append((lambda p: p.name == fifth.name and resThirdQuality == 'minor', 'm2'))
 
     if seventh != None:
-        if resThirdQuality == 'M3':
+        if resThirdQuality == 'M3' or resThirdQuality == 'major':
             howToResolve.append((lambda p: p.name == seventh.name, '-m2'))
-        elif resThirdQuality == 'm3':
+        elif resThirdQuality == 'm3' or resThirdQuality == 'minor':
             howToResolve.append((lambda p: p.name == seventh.name, '-M2'))
 
-    return _resolvePitches(susPossib, howToResolve)
+    return _resolvePitches(cadPossib, howToResolve)
 
-def deceptiveCadenceToMinor(susPossib, bassJump = 'M2', chordInfo = None):
+def deceptiveCadenceToMinor(cadPossib, bassJump = 'M2', chordInfo = None):
     '''
     Resolves a deceptive cadence (V(7)-vi) properly to a minor triad (i.e. in a major key)
 
     Added by Jason Leung, July 2014
     '''
     if chordInfo == None:
-        domChord = chord.Chord(susPossib)
+        domChord = chord.Chord(cadPossib)
         bass = domChord.bass()
         third = domChord.getChordStep(3)
         fifth = domChord.getChordStep(5)
@@ -896,17 +909,17 @@ def deceptiveCadenceToMinor(susPossib, bassJump = 'M2', chordInfo = None):
     if seventh != None:
         howToResolve.append((lambda p: p.name == seventh.name, '-m2'))
 
-    return _resolvePitches(susPossib, howToResolve)
+    return _resolvePitches(cadPossib, howToResolve)
 
 
-def deceptiveCadenceToMajor(susPossib, bassJump = 'm2', chordInfo = None):
+def deceptiveCadenceToMajor(cadPossib, bassJump = 'm2', chordInfo = None):
     '''
     Resolves a deceptive cadence (V(7)-VI) properly to a minor triad (i.e. in a minor key)
 
     Added by Jason Leung, July 2014
     '''
     if chordInfo == None:
-        domChord = chord.Chord(susPossib)
+        domChord = chord.Chord(cadPossib)
         bass = domChord.bass()
         third = domChord.getChordStep(3)
         fifth = domChord.getChordStep(5)
@@ -929,7 +942,7 @@ def deceptiveCadenceToMajor(susPossib, bassJump = 'm2', chordInfo = None):
     if seventh != None:
         howToResolve.append((lambda p: p.name == seventh.name, '-M2'))
 
-    return _resolvePitches(susPossib, howToResolve)
+    return _resolvePitches(cadPossib, howToResolve)
 
 def sevenSixSuspension(susPossib, bassJump = 'P1', chordInfo = None):
     '''
