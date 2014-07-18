@@ -663,6 +663,7 @@ class Segment(object):
 
         bassInterval = interval.notesToInterval(bass, resBass)
         descendingFifths = (bassInterval.generic.directed == 4 or bassInterval.generic.directed == -5)
+        descendingFifthsToFirstInversion = (bassInterval.generic.simpleDirected == 6 or bassInterval.generic.simpleDirected == -3)
         toDeceptiveCadence = (bassInterval.generic.simpleDirected == 2 and resChord.isTriad() and resChord.inversion() == 0)
         sevenSixSuspension = (bassInterval.generic.directed == 1 and resChord.isTriad() and resChord.inversion() == 1)
         if sevenSixSuspension:
@@ -673,6 +674,7 @@ class Segment(object):
         seventhChordResolutionMethods = \
         [(seventhSequence and descendingFifths, resolution.seventhChordDescendingFifths, [toDominantSeventh, toHalfDiminishedSeventh, bassInterval.directedName, chordInfo]),
          (descendingFifths and seventhQuality == 'm7', resolution.authenticCadence, [resThirdQuality, bassInterval.directedName, chordInfo]),
+         (resChord.isTriad() and descendingFifthsToFirstInversion, resolution.dominantTonicInversions, [resChord.quality, bassInterval.directedName, chordInfo]),
          (toDeceptiveCadence and resThirdQuality == 'm3', resolution.deceptiveCadenceToMinor, [bassInterval.directedName, chordInfo]),
          (toDeceptiveCadence and resThirdQuality == 'M3', resolution.deceptiveCadenceToMajor, [bassInterval.directedName, chordInfo]),
          (sevenSixSuspension, resolution.sevenSixSuspension, [bassInterval.directedName, chordInfo])]

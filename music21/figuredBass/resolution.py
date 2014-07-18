@@ -878,6 +878,35 @@ def authenticCadence(cadPossib, resThirdQuality = 'M3', bassJump = 'P4', chordIn
 
     return _resolvePitches(cadPossib, howToResolve)
 
+def dominantTonicInversions(domPossib, resThirdQuality = 'M3', bassJump = '-m3', chordInfo = None):
+    '''
+    Resolves a dominant (V or V7) chord to a tonic inversion (usually I6 or i6).
+
+    A V7–I6 is not optimal because the seventh resolves downward to a hidden octave with a bass, but is
+    deemed acceptable on a weak beat.
+
+    Added by Jason Leung, July 2014
+    '''
+    [bass, third, fifth, seventh] = chordInfo
+
+    howToResolve = \
+    [(lambda p: p == bass, bassJump),
+    (lambda p: p.name == bass.name, 'P1'),
+    (lambda p: p.name == third.name, 'm2')]
+
+    complete = (fifth != None)
+
+    if complete:
+        howToResolve.append((lambda p: p.name == fifth.name, '-M2'))
+
+    if seventh != None:
+        if resThirdQuality == 'M3' or resThirdQuality == 'major':
+            howToResolve.append((lambda p: p.name == seventh.name, '-m2'))
+        elif resThirdQuality == 'm3' or resThirdQuality == 'minor':
+            howToResolve.append((lambda p: p.name == seventh.name, '-M2'))
+
+    return _resolvePitches(domPossib, howToResolve)
+
 def deceptiveCadenceToMinor(cadPossib, bassJump = 'M2', chordInfo = None):
     '''
     Resolves a deceptive cadence (V(7)-vi) properly to a minor triad (i.e. in a major key)
@@ -1032,8 +1061,8 @@ _DOC_ORDER = [augmentedSixthToDominant,
               diminishedSeventhToMajorTonic, diminishedSeventhToMinorTonic,
               diminishedSeventhToMajorSubdominant, diminishedSeventhToMinorSubdominant,
               fourThreeSuspensionToMajorTriad, fourThreeSuspensionToMinorTriad,
-              seventhChordDescendingFifths, authenticCadence, deceptiveCadenceToMinor,
-              deceptiveCadenceToMajor, sevenSixSuspension]
+              seventhChordDescendingFifths, authenticCadence, dominantTonicInversions,
+              deceptiveCadenceToMinor, deceptiveCadenceToMajor, sevenSixSuspension]
 
 #-------------------------------------------------------------------------------
 class ResolutionException(exceptions21.Music21Exception):
