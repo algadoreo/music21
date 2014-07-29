@@ -713,7 +713,7 @@ class Segment(object):
             self.leadingTone = chordInfo[2].name # since chordInfo = [bass, root, third, fifth]
             self.doubledNote = chordInfo[0].name
             self.fbRules.specificDoubling = True
-        couldBeV6IProgression = ((thisChord.isMajorTriad() and thisChord.inversion() == 1) and bassInterval.directedName == 'm2')
+        couldBeV6IProgression = ((thisChord.isMajorTriad() and thisChord.inversion() == 1) and (resChord.isTriad() and resChord.inversion() == 0) and bassInterval.directedName == 'm2')
         if couldBeV6IProgression:
             self.leadingTone = chordInfo[0].name
             self.doubledNote = chordInfo[1].name
