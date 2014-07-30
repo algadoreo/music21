@@ -720,15 +720,20 @@ class Segment(object):
             self.fbRules.specificDoubling = True
             segmentB.doubledNote = resBass.name
             segmentB.fbRules.specificDoubling = True
+        couldBeItoV6Progression = ((thisChord.isTriad() and thisChord.inversion() == 0) and (resChord.isMajorTriad() and resChord.inversion() == 1) and (bassInterval.directedSimpleName == 'm-2' or bassInterval.directedSimpleName == 'M7'))
+        if couldBeItoV6Progression:
+            self.doubledNote = bass.name
+            self.fbRules.specificDoubling = True
 
         triadToRootPositionSeventhChord = (thisChord.isTriad() and resChord.getChordStep(7, testRoot=segmentB.bassNote) != None)
         segmentB.fbRules.forbidIncompletePossibilities = (not triadToRootPositionSeventhChord)
         segmentB.fbRules.checkIfProperSeventhChord = triadToRootPositionSeventhChord
 
         specialResolutionMethods = \
-        [(couldBeVIProgression, resolution.authenticCadence, [resQuality, bassInterval.directedName, chordInfo[1:]])]
+        [(couldBeVIProgression, resolution.authenticCadence, [resQuality, bassInterval.directedName, chordInfo[1:]]),
+         (couldBeItoV6Progression, resolution.tonicToDominantInversion, [resQuality, bassInterval.directedName, chordInfo])]
 
-        if couldBeVIProgression:
+        if couldBeVIProgression or couldBeItoV6Progression:
             return self._resolveSpecialSegment(segmentB, specialResolutionMethods)
         else:
             return self._resolveOrdinarySegment(segmentB)

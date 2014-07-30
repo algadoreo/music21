@@ -973,6 +973,30 @@ def deceptiveCadenceToMajor(cadPossib, bassJump = 'm2', chordInfo = None):
 
     return _resolvePitches(cadPossib, howToResolve)
 
+def tonicToDominantInversion(tonPossib, thirdQuality = 'M3', bassJump = '-m2', chordInfo = None):
+    '''
+    Resolves a I–V6 (or similar) progression
+
+    Added by Jason Leung, July 2014
+    '''
+    if chordInfo == None:
+        tonPossib = chord.Chord(tonPossib)
+        bass = tonPossib.bass()
+        root = tonPossib.root()
+        third = tonPossib.getChordStep(3)
+        fifth = tonPossib.getChordStep(5)
+    else:
+        [bass, root, third, fifth] = chordInfo
+
+    howToResolve = \
+    [(lambda p: p == bass, bassJump),
+    (lambda p: p.name == bass.name, 'M2'),
+    (lambda p: p.name == third.name and (thirdQuality == 'M3' or thirdQuality == 'major'), 'm3'),
+    (lambda p: p.name == third.name and (thirdQuality == 'm3' or thirdQuality == 'minor'), 'M3'),
+    (lambda p: p.name == fifth.name, 'P1')]
+
+    return _resolvePitches(tonPossib, howToResolve)
+
 def sevenSixSuspension(susPossib, bassJump = 'P1', chordInfo = None):
     '''
     Creates a 7–6 suspension over the bass; the bass can either be stationary or move down a
@@ -1062,7 +1086,8 @@ _DOC_ORDER = [augmentedSixthToDominant,
               diminishedSeventhToMajorSubdominant, diminishedSeventhToMinorSubdominant,
               fourThreeSuspensionToMajorTriad, fourThreeSuspensionToMinorTriad,
               seventhChordDescendingFifths, authenticCadence, dominantTonicInversions,
-              deceptiveCadenceToMinor, deceptiveCadenceToMajor, sevenSixSuspension]
+              deceptiveCadenceToMinor, deceptiveCadenceToMajor, tonicToDominantInversion,
+              sevenSixSuspension]
 
 #-------------------------------------------------------------------------------
 class ResolutionException(exceptions21.Music21Exception):
