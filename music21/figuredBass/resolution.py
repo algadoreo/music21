@@ -1019,7 +1019,7 @@ def sevenSixSeries(seqPossib, bassJump = '-m2', chordInfo = None):
     Prolongs the 7–6 sequence, connecting the 6-chord with the following 7-chord. (The progression
     from 7 to 6 is dealt with in the :method:`sevenSixSuspension()'
 
-    Because of the seventh chord has a doubled bass, this progression results in parallel octaves
+    Because the seventh chord has a doubled bass, this progression results in parallel octaves
     with the bass when moving from 6 to 7. This is deemed acceptable in instrumental writing
     because it is interpreted as three-voice harmony rather than four.
 
