@@ -728,12 +728,14 @@ class Segment(object):
         triadToRootPositionSeventhChord = (thisChord.isTriad() and resChord.getChordStep(7, testRoot=segmentB.bassNote) != None)
         segmentB.fbRules.forbidIncompletePossibilities = (not triadToRootPositionSeventhChord)
         segmentB.fbRules.checkIfProperSeventhChord = triadToRootPositionSeventhChord
+        couldBeSevenSixSeriesContinued = (triadToRootPositionSeventhChord and thisChord.inversion() == 1 and bassInterval.generic.simpleDirected == -2 and resBass.tie != None)
 
         specialResolutionMethods = \
         [(couldBeVIProgression, resolution.authenticCadence, [resQuality, bassInterval.directedName, chordInfo[1:]]),
-         (couldBeItoV6Progression, resolution.tonicToDominantInversion, [resQuality, bassInterval.directedName, chordInfo])]
+         (couldBeItoV6Progression, resolution.tonicToDominantInversion, [resQuality, bassInterval.directedName, chordInfo]),
+         (couldBeSevenSixSeriesContinued, resolution.sevenSixSeries, [bassInterval.directedName, chordInfo])]
 
-        if couldBeVIProgression or couldBeItoV6Progression:
+        if couldBeVIProgression or couldBeItoV6Progression or couldBeSevenSixSeriesContinued:
             return self._resolveSpecialSegment(segmentB, specialResolutionMethods)
         else:
             return self._resolveOrdinarySegment(segmentB)

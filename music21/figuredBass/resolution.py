@@ -1014,6 +1014,33 @@ def sevenSixSuspension(susPossib, bassJump = 'P1', chordInfo = None):
 
     return _resolvePitches(susPossib, howToResolve)
 
+def sevenSixSeries(seqPossib, bassJump = '-m2', chordInfo = None):
+    '''
+    Prolongs the 7–6 sequence, connecting the 6-chord with the following 7-chord. (The progression
+    from 7 to 6 is dealt with in the :method:`sevenSixSuspension()'
+
+    Because of the seventh chord has a doubled bass, this progression results in parallel octaves
+    with the bass when moving from 6 to 7. This is deemed acceptable in instrumental writing
+    because it is interpreted as three-voice harmony rather than four.
+
+    Added by Jason Leung, July 2014
+    '''
+    if chordInfo == None:
+        seqPossib = chord.Chord(seqPossib)
+        bass = seqPossib.bass()
+        root = seqPossib.root()
+        third = seqPossib.getChordStep(3)
+        fifth = seqPossib.getChordStep(5)
+    else:
+        [bass, root, third, fifth] = chordInfo
+
+    howToResolve = \
+    [(lambda p: p.name == bass.name, bassJump),
+    (lambda p: p.name == root.name, 'P1'),
+    (lambda p: p.name == fifth.name, '-M2')]
+
+    return _resolvePitches(seqPossib, howToResolve)
+
 '''
 transpositionsTable = {}
 def transpose(samplePitch, intervalString):
@@ -1087,7 +1114,7 @@ _DOC_ORDER = [augmentedSixthToDominant,
               fourThreeSuspensionToMajorTriad, fourThreeSuspensionToMinorTriad,
               seventhChordDescendingFifths, authenticCadence, dominantTonicInversions,
               deceptiveCadenceToMinor, deceptiveCadenceToMajor, tonicToDominantInversion,
-              sevenSixSuspension]
+              sevenSixSuspension, sevenSixSeries]
 
 #-------------------------------------------------------------------------------
 class ResolutionException(exceptions21.Music21Exception):
