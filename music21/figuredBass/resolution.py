@@ -887,7 +887,14 @@ def dominantTonicInversions(domPossib, resThirdQuality = 'M3', bassJump = '-m3',
 
     Added by Jason Leung, July 2014
     '''
-    [bass, third, fifth, seventh] = chordInfo
+    if chordInfo == None:
+        domChord = chord.Chord(domPossib)
+        bass = domChord.bass()
+        third = domChord.getChordStep(3, testRoot=bass)
+        fifth = domChord.getChordStep(5, testRoot=bass)
+        seventh = domChord.getChordStep(7, testRoot=bass)
+    else:
+        [bass, third, fifth, seventh] = chordInfo
 
     howToResolve = \
     [(lambda p: p == bass, bassJump),
@@ -980,11 +987,11 @@ def tonicToDominantInversion(tonPossib, thirdQuality = 'M3', bassJump = '-m2', c
     Added by Jason Leung, July 2014
     '''
     if chordInfo == None:
-        tonPossib = chord.Chord(tonPossib)
-        bass = tonPossib.bass()
-        root = tonPossib.root()
-        third = tonPossib.getChordStep(3)
-        fifth = tonPossib.getChordStep(5)
+        tonicChord = chord.Chord(tonPossib)
+        bass = tonicChord.bass()
+        root = tonicChord.root()
+        third = tonicChord.getChordStep(3)
+        fifth = tonicChord.getChordStep(5)
     else:
         [bass, root, third, fifth] = chordInfo
 
@@ -1005,7 +1012,13 @@ def sevenSixSuspension(susPossib, bassJump = 'P1', chordInfo = None):
 
     Added by Jason Leung, July 2014
     '''
-    [bass, third, fifth, seventh] = chordInfo
+    if chordInfo == None:
+        seventhChord = chord.Chord(susPossib)
+        bass = seventhChord.bass()
+        third = seventhChord.getChordStep(3, testRoot=bass)
+        seventh = seventhChord.getChordStep(7, testRoot=bass)
+    else:
+        [bass, third, fifth, seventh] = chordInfo
 
     howToResolve = \
     [(lambda p: p.name == bass.name, bassJump),
@@ -1026,11 +1039,11 @@ def sevenSixSeries(seqPossib, bassJump = '-m2', chordInfo = None):
     Added by Jason Leung, July 2014
     '''
     if chordInfo == None:
-        seqPossib = chord.Chord(seqPossib)
-        bass = seqPossib.bass()
-        root = seqPossib.root()
-        third = seqPossib.getChordStep(3)
-        fifth = seqPossib.getChordStep(5)
+        sixChord = chord.Chord(seqPossib)
+        bass = sixChord.bass()
+        root = sixChord.root()
+        third = sixChord.getChordStep(3)
+        fifth = sixChord.getChordStep(5)
     else:
         [bass, root, third, fifth] = chordInfo
 
