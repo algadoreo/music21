@@ -1004,6 +1004,66 @@ def tonicToDominantInversion(tonPossib, thirdQuality = 'M3', bassJump = '-m2', c
 
     return _resolvePitches(tonPossib, howToResolve)
 
+def fiveSixSuspension(susPossib, resQuality = 'minor', bassJump = 'P1', chordInfo = None):
+    '''
+    Also known as the 5–6 technique, this creates a 5–6 suspension over the bass.
+
+    Added by Jason Leung, July 2014
+    '''
+    suspensionChord = chord.Chord(susPossib)
+    chordQuality = suspensionChord.quality
+
+    if chordInfo == None:
+        root = suspensionChord.root()
+        third = suspensionChord.getChordStep(3)
+        fifth = suspensionChord.getChordStep(5)
+    else:
+        [bass, root, third, fifth] = chordInfo
+
+    howToResolve = \
+    [(lambda p: p == bass, bassJump),
+    (lambda p: p.name == bass.name, 'P1'),
+    (lambda p: p.name == third.name, 'P1')]
+
+    if resQuality == 'major' and chordQuality != 'diminished':
+        howToResolve.append((lambda p: p.name == fifth.name, 'm2'))
+    else:
+        howToResolve.append((lambda p: p.name == fifth.name, 'M2'))
+
+    return _resolvePitches(susPossib, howToResolve)
+
+def fiveSixSeriesAscending(seqPossib, resQuality = 'minor', bassJump = 'M2', chordInfo = None):
+    '''
+    Prolongs the ascending 5–6 sequence, connecting the 6-chord with the following 5-chord (root
+    position triad), where the bass ascends by step between each iteration of the sequence.
+
+    Added by Jason Leung, July 2014
+    '''
+    sixChord = chord.Chord(seqPossib)
+    chordQuality = sixChord.quality
+
+    if chordInfo == None:
+        bass = sixChord.bass()
+        root = sixChord.root()
+        third = sixChord.getChordStep(3)
+        fifth = sixChord.getChordStep(5)
+    else:
+        [bass, root, third, fifth] = chordInfo
+
+    bassInterval = interval.Interval(bassJump)
+
+    howToResolve = \
+    [(lambda p: p == bass, bassJump),
+    (lambda p: p.name == root.name, 'P1'),
+    (lambda p: p.name == third.name, bassInterval.directedSimpleName)]
+
+    if chordQuality == 'minor' and resQuality == 'minor':
+        howToResolve.append((lambda p: p.name == fifth.name, 'm2'))
+    else:
+        howToResolve.append((lambda p: p.name == fifth.name, 'M2'))
+
+    return _resolvePitches(seqPossib, howToResolve)
+
 def sevenSixSuspension(susPossib, bassJump = 'P1', chordInfo = None):
     '''
     Creates a 7–6 suspension over the bass; the bass can either be stationary or move down a
@@ -1127,6 +1187,7 @@ _DOC_ORDER = [augmentedSixthToDominant,
               fourThreeSuspensionToMajorTriad, fourThreeSuspensionToMinorTriad,
               seventhChordDescendingFifths, authenticCadence, dominantTonicInversions,
               deceptiveCadenceToMinor, deceptiveCadenceToMajor, tonicToDominantInversion,
+              fiveSixSuspension, fiveSixSeriesAscending,
               sevenSixSuspension, sevenSixSeries]
 
 #-------------------------------------------------------------------------------

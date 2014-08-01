@@ -725,6 +725,16 @@ class Segment(object):
             self.doubledNote = bass.name
             self.fbRules.specificDoubling = True
 
+        fiveSixSuspension = (bassInterval.directedName == 'P1' and (thisChord.isTriad() and thisChord.inversion() == 0) and (resChord.isTriad() and resChord.inversion() == 1))
+        if fiveSixSuspension:
+            self.doubledNote = bass.name
+            self.fbRules.specificDoubling = True
+        couldBeFiveSixSeriesContinued = ((thisChord.isTriad() and thisChord.inversion() == 1) and (resChord.isTriad() and resChord.inversion() == 0) and bassInterval.generic.simpleDirected == 2 and bass.tie != None)
+        if couldBeFiveSixSeriesContinued:
+            self.leadingTone = None
+            self.doubledNote = None
+            self.fbRules.specificDoubling = False
+
         triadToRootPositionSeventhChord = (thisChord.isTriad() and resChord.getChordStep(7, testRoot=segmentB.bassNote) != None)
         segmentB.fbRules.forbidIncompletePossibilities = (not triadToRootPositionSeventhChord)
         segmentB.fbRules.checkIfProperSeventhChord = triadToRootPositionSeventhChord
@@ -733,9 +743,11 @@ class Segment(object):
         specialResolutionMethods = \
         [(couldBeVIProgression, resolution.authenticCadence, [resQuality, bassInterval.directedName, chordInfo[1:]]),
          (couldBeItoV6Progression, resolution.tonicToDominantInversion, [resQuality, bassInterval.directedName, chordInfo]),
+         (fiveSixSuspension, resolution.fiveSixSuspension, [resQuality, bassInterval.directedName, chordInfo]),
+         (couldBeFiveSixSeriesContinued, resolution.fiveSixSeriesAscending, [resQuality, bassInterval.directedName, chordInfo]),
          (couldBeSevenSixSeriesContinued, resolution.sevenSixSeries, [bassInterval.directedName, chordInfo])]
 
-        if couldBeVIProgression or couldBeItoV6Progression or couldBeSevenSixSeriesContinued:
+        if couldBeVIProgression or couldBeItoV6Progression or fiveSixSuspension or couldBeFiveSixSeriesContinued or couldBeSevenSixSeriesContinued:
             return self._resolveSpecialSegment(segmentB, specialResolutionMethods)
         else:
             return self._resolveOrdinarySegment(segmentB)
