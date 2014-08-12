@@ -786,6 +786,32 @@ def fourThreeSuspensionToMinorTriad(susPossib, bassJump = 'P1', chordInfo = None
 
     return _resolvePitches(susPossib, howToResolve)
 
+def nineEightSuspension(susPossib, bassJump = 'P1', chordInfo = None):
+    '''
+    Resolves a 9–8 suspension over a stationary bass to a triad in root position. Also resolves the 9-"6"
+    variant, where the resolution triad is in first inversion with the bass (root) moving up to the third –
+    in effect having it and the dissonant ninth trade positions.
+
+    Note that a 9th is equivalent to a 2nd when reduced to a simple interval (from a compound interval).
+
+    Added by Jason Leung, August 2014
+    '''
+    if chordInfo == None:
+        ninthChord = chord.Chord(susPossib)
+        bass = ninthChord.bass()
+        root = bass
+        third = ninthChord.getChordStep(3, testRoot=bass)
+        fifth = ninthChord.getChordStep(5, testRoot=bass)
+        ninth = ninthChord.getChordStep(2, testRoot=bass)
+    else:
+        [bass, root, third, fifth, ninth] = chordInfo
+
+    howToResolve = \
+    [(lambda p: p == bass, bassJump),
+    (lambda p: p.name == ninth.name, 'M-2')]
+
+    return _resolvePitches(susPossib, howToResolve)
+
 def seventhChordDescendingFifths(sevPossib, toDominantSeventh = False, toHalfDiminishedSeventh = False, bassJump = 'P4', chordInfo = None):
     '''
     Resolves a generic seventh chord to another seventh chord as part of a descending fifths sequence.
@@ -1198,6 +1224,7 @@ _DOC_ORDER = [augmentedSixthToDominant,
               diminishedSeventhToMajorTonic, diminishedSeventhToMinorTonic,
               diminishedSeventhToMajorSubdominant, diminishedSeventhToMinorSubdominant,
               fourThreeSuspensionToMajorTriad, fourThreeSuspensionToMinorTriad,
+              nineEightSuspension,
               seventhChordDescendingFifths, authenticCadence, dominantTonicInversions,
               deceptiveCadenceToMinor, deceptiveCadenceToMajor,
               fiveSixSuspension, fiveSixSeriesAscending, descendingFiveSix,

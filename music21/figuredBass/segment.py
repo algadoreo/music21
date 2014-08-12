@@ -47,7 +47,7 @@ class Segment(object):
     _DOC_ORDER = ['allSinglePossibilities', 'singlePossibilityRules', 'allCorrectSinglePossibilities',
                   'consecutivePossibilityRules', 'specialResolutionRules', 'allCorrectConsecutivePossibilities',
                   'resolveDominantSeventhSegment', 'resolveDiminishedSeventhSegment', 'resolveAugmentedSixthSegment',
-                  'resolve43Suspension', 'resolveGeneralSeventhChord', 'otherResolutionMethods']
+                  'resolve43Suspension', 'resolveNineEightSuspension', 'resolveGeneralSeventhChord', 'otherResolutionMethods']
     _DOC_ATTR = {'bassNote': 'A :class:`~music21.note.Note` whose pitch forms the bass of each possibility.',
                  'numParts': '''The number of parts (including the bass) that possibilities should contain, which 
                  comes directly from :attr:`~music21.figuredBass.rules.Rules.numParts` in the Rules object.''',
@@ -346,6 +346,13 @@ class Segment(object):
         except:
             is43Suspension = False
 
+        try:
+            ninth = self.segmentChord.getChordStep(2, testRoot=self.bassNote)
+            third = self.segmentChord.getChordStep(3, testRoot=self.bassNote)
+            isNineEightSuspension = not (ninth is None or third is None)
+        except:
+            isNineEightSuspension = False
+
         #!---------- Check if it's some other seventh chord ----------!
         try:
             # Assume root position for now
@@ -360,6 +367,7 @@ class Segment(object):
          (fbRules.resolveAugmentedSixthProperly and isAugmentedSixth, self.resolveAugmentedSixthSegment),
          (isSecondInversionTriad, self.resolveCadential64),
          (is43Suspension, self.resolve43Suspension),
+         (isNineEightSuspension, self.resolveNineEightSuspension),
          (containsSeventh and not (isDominantSeventh or isDiminishedSeventh), self.resolveGeneralSeventhChord),
          (True, self.otherResolutionMethods)]
         
@@ -620,6 +628,37 @@ class Segment(object):
         if fourth != None and resBass.name == bass.name and resChord.getChordStep(5).name == fifth.name and resChord.inversion() == 0:
             return self._resolveSpecialSegment(segmentB, suspensionResolutionMethods)
         else:
+            return self._resolveOrdinarySegment(segmentB)
+
+    def resolveNineEightSuspension(self, segmentB):
+        '''
+        Checks to see if the progression is 9–8 suspension, and resolve properly if so.
+        A possible variant is the 9–"6" progression, where the resolution triad is in
+        first inversion – in effect having the root and dissonant ninth trade positions.
+
+        Note that a 9th is equivalent to a 2nd when reduced to a simple interval (from a compound interval).
+
+        Added by Jason Leung, August 2014
+        '''
+        ninthChord = self.segmentChord
+        bass = self.bassNote
+        third = ninthChord.getChordStep(3, testRoot=bass)
+        fifth = ninthChord.getChordStep(5, testRoot=bass)
+        ninth = ninthChord.getChordStep(2, testRoot=bass)
+        chordInfo = [bass, bass, third, fifth, ninth] # Take the form [bass, root, third, fifth, ninth], where root = bass
+
+        resChord = segmentB.segmentChord
+        resBass = segmentB.bassNote
+
+        bassInterval = interval.notesToInterval(bass, resBass)
+
+        nineEightResolutionMethods = \
+        [(bassInterval.directedSimpleName == 'P1' or bassInterval.generic.simpleDirected == 3 or bassInterval.generic.simpleDirected == -6, resolution.nineEightSuspension, [bassInterval.directedName, chordInfo])]
+
+        try:
+            return self._resolveSpecialSegment(segmentB, nineEightResolutionMethods)
+        except:
+            self._environRules("Not a 9–8 suspension. Executing ordinary resolution.")
             return self._resolveOrdinarySegment(segmentB)
 
     def resolveGeneralSeventhChord(self, segmentB):
