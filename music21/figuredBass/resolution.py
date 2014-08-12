@@ -980,30 +980,6 @@ def deceptiveCadenceToMajor(cadPossib, bassJump = 'm2', chordInfo = None):
 
     return _resolvePitches(cadPossib, howToResolve)
 
-def tonicToDominantInversion(tonPossib, thirdQuality = 'M3', bassJump = '-m2', chordInfo = None):
-    '''
-    Resolves a I–V6 (or similar) progression
-
-    Added by Jason Leung, July 2014
-    '''
-    if chordInfo == None:
-        tonicChord = chord.Chord(tonPossib)
-        bass = tonicChord.bass()
-        root = tonicChord.root()
-        third = tonicChord.getChordStep(3)
-        fifth = tonicChord.getChordStep(5)
-    else:
-        [bass, root, third, fifth] = chordInfo
-
-    howToResolve = \
-    [(lambda p: p == bass, bassJump),
-    (lambda p: p.name == bass.name, 'M2'),
-    (lambda p: p.name == third.name and (thirdQuality == 'M3' or thirdQuality == 'major'), 'm3'),
-    (lambda p: p.name == third.name and (thirdQuality == 'm3' or thirdQuality == 'minor'), 'M3'),
-    (lambda p: p.name == fifth.name, 'P1')]
-
-    return _resolvePitches(tonPossib, howToResolve)
-
 def fiveSixSuspension(susPossib, resQuality = 'minor', bassJump = 'P1', chordInfo = None):
     '''
     Also known as the 5–6 technique, this creates a 5–6 suspension over the bass.
@@ -1061,6 +1037,43 @@ def fiveSixSeriesAscending(seqPossib, resQuality = 'minor', bassJump = 'M2', cho
         howToResolve.append((lambda p: p.name == fifth.name, 'm2'))
     else:
         howToResolve.append((lambda p: p.name == fifth.name, 'M2'))
+
+    return _resolvePitches(seqPossib, howToResolve)
+
+def descendingFiveSix(seqPossib, bassJump = 'm-2', chordInfo = None):
+    '''
+    Realizes the descending 5–6 sequence (a.k.a. "descending thirds"), where a stepwise-
+    descending bass line is realized using an alternating 5/3–6/3 pattern.
+
+    Harmonically, this is understood as a series of root position chords (5/3) descending
+    in thirds, but with the jump in the bass filled in using first inversion chords (6/3).
+    E.g.: The progression I–vi–IV–ii–etc. becomes I–[V6]–vi–[iii6]–IV–ii(6)–etc.
+
+    Added by Jason Leung, August 2014
+    '''
+    fiveChord = chord.Chord(seqPossib)
+    chordQuality = fiveChord.quality
+
+    if chordInfo == None:
+        bass = fiveChord.bass()
+        root = fiveChord.root()
+        third = fiveChord.getChordStep(3)
+        fifth = fiveChord.getChordStep(5)
+    else:
+        [bass, root, third, fifth] = chordInfo
+
+    if seqPossib[0].name == bass.name:
+        howToResolve = \
+        [(lambda p: p == bass, bassJump),
+        (lambda p: p.name == bass.name, 'M2'),
+        (lambda p: p.name == third.name and chordQuality == 'major', 'M-2'),
+        (lambda p: p.name == third.name, 'm-2')]
+    else:
+        howToResolve = \
+        [(lambda p: p == bass, bassJump),
+        (lambda p: p.name == bass.name, 'M2'),
+        (lambda p: p.name == third.name and chordQuality == 'major', 'm3'),
+        (lambda p: p.name == third.name, 'M3')]
 
     return _resolvePitches(seqPossib, howToResolve)
 
@@ -1186,8 +1199,8 @@ _DOC_ORDER = [augmentedSixthToDominant,
               diminishedSeventhToMajorSubdominant, diminishedSeventhToMinorSubdominant,
               fourThreeSuspensionToMajorTriad, fourThreeSuspensionToMinorTriad,
               seventhChordDescendingFifths, authenticCadence, dominantTonicInversions,
-              deceptiveCadenceToMinor, deceptiveCadenceToMajor, tonicToDominantInversion,
-              fiveSixSuspension, fiveSixSeriesAscending,
+              deceptiveCadenceToMinor, deceptiveCadenceToMajor,
+              fiveSixSuspension, fiveSixSeriesAscending, descendingFiveSix,
               sevenSixSuspension, sevenSixSeries]
 
 #-------------------------------------------------------------------------------
