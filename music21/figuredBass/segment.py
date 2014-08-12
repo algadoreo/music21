@@ -47,7 +47,8 @@ class Segment(object):
     _DOC_ORDER = ['allSinglePossibilities', 'singlePossibilityRules', 'allCorrectSinglePossibilities',
                   'consecutivePossibilityRules', 'specialResolutionRules', 'allCorrectConsecutivePossibilities',
                   'resolveDominantSeventhSegment', 'resolveDiminishedSeventhSegment', 'resolveAugmentedSixthSegment',
-                  'resolve43Suspension', 'resolveNineEightSuspension', 'resolveGeneralSeventhChord', 'otherResolutionMethods']
+                  'resolveCadential64','resolve43Suspension', 'resolveNineEightSuspension', 'resolveGeneralSeventhChord',
+                  'otherResolutionMethods']
     _DOC_ATTR = {'bassNote': 'A :class:`~music21.note.Note` whose pitch forms the bass of each possibility.',
                  'numParts': '''The number of parts (including the bass) that possibilities should contain, which 
                  comes directly from :attr:`~music21.figuredBass.rules.Rules.numParts` in the Rules object.''',
