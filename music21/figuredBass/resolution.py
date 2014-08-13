@@ -920,14 +920,15 @@ def dominantTonicInversions(domPossib, resThirdQuality = 'M3', bassJump = '-m3',
         fifth = domChord.getChordStep(5, testRoot=bass)
         seventh = domChord.getChordStep(7, testRoot=bass)
     else:
-        [bass, third, fifth, seventh] = chordInfo
+        [bass, third, fifth] = chordInfo[:3]
+        seventh = chordInfo[3] if len(chordInfo) >= 4 else None
+
+    complete = (fifth != None)
 
     howToResolve = \
     [(lambda p: p == bass, bassJump),
     (lambda p: p.name == bass.name, 'P1'),
     (lambda p: p.name == third.name, 'm2')]
-
-    complete = (fifth != None)
 
     if complete:
         howToResolve.append((lambda p: p.name == fifth.name, '-M2'))
