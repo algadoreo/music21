@@ -666,7 +666,7 @@ class Segment(object):
         try:
             return self._resolveSpecialSegment(segmentB, nineEightResolutionMethods)
         except:
-            self._environRules("Not a 9–8 suspension. Executing ordinary resolution.")
+            self._environRules.warn("Not a 9–8 suspension. Executing ordinary resolution.")
             return self._resolveOrdinarySegment(segmentB)
 
     def resolveGeneralSeventhChord(self, segmentB):

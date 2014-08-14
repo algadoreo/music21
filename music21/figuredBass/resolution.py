@@ -977,7 +977,7 @@ def deceptiveCadenceToMinor(cadPossib, bassJump = 'M2', chordInfo = None):
 
 def deceptiveCadenceToMajor(cadPossib, bassJump = 'm2', chordInfo = None):
     '''
-    Resolves a deceptive cadence (V(7)-VI) properly to a minor triad (i.e. in a minor key)
+    Resolves a deceptive cadence (V(7)-VI) properly to a major triad (i.e. in a minor key)
 
     Added by Jason Leung, July 2014
     '''
