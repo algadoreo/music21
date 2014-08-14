@@ -1007,6 +1007,45 @@ def deceptiveCadenceToMajor(cadPossib, bassJump = 'm2', chordInfo = None):
 
     return _resolvePitches(cadPossib, howToResolve)
 
+def twoSixFiveToDominant(sevPossib, bassJump = 'M2', chordInfo = None):
+    '''
+    Realizes the ii6/5–V progression, where the ii6/5 is a minor seventh chord in major keys.
+
+    Added by Jason Leung, August 2014
+    '''
+    if chordInfo == None:
+        seventhChord = chord.Chord(sevPossib)
+        chordInfo = _unpackSeventhChord(seventhChord)
+    else:
+        [bass, root, third, fifth, seventh] = chordInfo
+
+    howToResolve = \
+    [(lambda p: p == bass, bassJump),
+    (lambda p: p.name == fifth.name, 'M-2'),
+    (lambda p: p.name == seventh.name, 'm-2')]
+
+    return _resolvePitches(sevPossib, howToResolve)
+
+def twoSixFiveToDominantSus4(sevPossib, bassJump = 'M2', chordInfo = None):
+    '''
+    Realizes the ii6/5–V4-3 progression. The seventh does not resolve immediately but is
+    sustained into the V chord as a dissonant fourth before resolving downward by step
+    (to the leading tone).
+
+    Added by Jason Leung, August 2014
+    '''
+    if chordInfo == None:
+        seventhChord = chord.Chord(sevPossib)
+        chordInfo = _unpackSeventhChord(seventhChord)
+    else:
+        [bass, root, third, fifth, seventh] = chordInfo
+
+    howToResolve = \
+    [(lambda p: p == bass, bassJump),
+    (lambda p: p.name == fifth.name, 'M-2')]
+
+    return _resolvePitches(sevPossib, howToResolve)
+
 def fiveSixSuspension(susPossib, resQuality = 'minor', bassJump = 'P1', chordInfo = None):
     '''
     Also known as the 5–6 technique, this creates a 5–6 suspension over the bass.
@@ -1228,6 +1267,7 @@ _DOC_ORDER = [augmentedSixthToDominant,
               nineEightSuspension,
               seventhChordDescendingFifths, authenticCadence, dominantTonicInversions,
               deceptiveCadenceToMinor, deceptiveCadenceToMajor,
+              twoSixFiveToDominant, twoSixFiveToDominantSus4,
               fiveSixSuspension, fiveSixSeriesAscending, descendingFiveSix,
               sevenSixSuspension, sevenSixSeries]
 

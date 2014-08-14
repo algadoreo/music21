@@ -48,7 +48,7 @@ class Segment(object):
                   'consecutivePossibilityRules', 'specialResolutionRules', 'allCorrectConsecutivePossibilities',
                   'resolveDominantSeventhSegment', 'resolveDiminishedSeventhSegment', 'resolveAugmentedSixthSegment',
                   'resolveCadential64','resolve43Suspension', 'resolveNineEightSuspension', 'resolveGeneralSeventhChord',
-                  'otherResolutionMethods']
+                  'resolveMinorSeventhFirstInversion', 'otherResolutionMethods']
     _DOC_ATTR = {'bassNote': 'A :class:`~music21.note.Note` whose pitch forms the bass of each possibility.',
                  'numParts': '''The number of parts (including the bass) that possibilities should contain, which 
                  comes directly from :attr:`~music21.figuredBass.rules.Rules.numParts` in the Rules object.''',
@@ -362,6 +362,12 @@ class Segment(object):
         except:
             containsSeventh = False
 
+        # First inversion chords, like ii6/5 (which is a minor seventh chord in major keys)
+        try:
+            isMinorSeventhFirstInversion = (self.segmentChord.inversionName() == 65 and self.segmentChord.quality == 'minor')
+        except:
+            isMinorSeventhFirstInversion = False
+
         specialResRules = \
         [(fbRules.resolveDominantSeventhProperly and isDominantSeventh, self.resolveDominantSeventhSegment),
          (fbRules.resolveDiminishedSeventhProperly and isDiminishedSeventh, self.resolveDiminishedSeventhSegment, [fbRules.doubledRootInDim7]),
@@ -370,6 +376,7 @@ class Segment(object):
          (is43Suspension, self.resolve43Suspension),
          (isNineEightSuspension, self.resolveNineEightSuspension),
          (containsSeventh and not (isDominantSeventh or isDiminishedSeventh), self.resolveGeneralSeventhChord),
+         (isMinorSeventhFirstInversion, self.resolveMinorSeventhFirstInversion),
          (True, self.otherResolutionMethods)]
         
         return specialResRules
@@ -723,6 +730,34 @@ class Segment(object):
             return self._resolveSpecialSegment(segmentB, seventhChordResolutionMethods)
         except:
             self._environRules.warn("Not a known seventh resolution. Executing ordinary resolution.")
+            return self._resolveOrdinarySegment(segmentB)
+
+    def resolveMinorSeventhFirstInversion(self, segmentB):
+        '''
+        Resolves a minor 6/5 chord
+
+        Added by Jason Leung, August 2014
+        '''
+        sixFiveChord = self.segmentChord
+        chordInfo = _unpackSeventhChord(sixFiveChord)
+        [bass, root, third, fifth, seventh] = chordInfo
+
+        resChord = segmentB.segmentChord
+        resBass = resChord.bass()
+        resFourth = resChord.getChordStep(4, testRoot=resBass)
+
+        bassJump = interval.notesToInterval(bass, resBass).directedName
+
+        toSus4 = (resFourth != None)
+
+        sixFiveChordResolutionMethods = \
+        [(bassJump == 'M2' and resChord.isMajorTriad(), resolution.twoSixFiveToDominant, [bassJump, chordInfo]),
+         (bassJump == 'M2' and toSus4, resolution.twoSixFiveToDominantSus4, [bassJump, chordInfo])]
+
+        try:
+            return self._resolveSpecialSegment(segmentB, sixFiveChordResolutionMethods)
+        except:
+            self._environRules.warn("Not a known 6/5 resolution. Executing ordinary resolution.")
             return self._resolveOrdinarySegment(segmentB)
 
     def otherResolutionMethods(self, segmentB):
