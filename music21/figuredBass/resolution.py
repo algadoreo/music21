@@ -1046,6 +1046,129 @@ def twoSixFiveToDominantSus4(sevPossib, bassJump = 'M2', chordInfo = None):
 
     return _resolvePitches(sevPossib, howToResolve)
 
+def descendingSixThreeSequence(seqPossib, resQuality = 'major', bassJump = 'm-2', chordInfo = None):
+    '''
+    Realizes the descending 6/3 sequence, where a stepwise-descending bass supports a
+    sequence of 6/3 chords. To avoid parallel 5ths in four voices, the chords alternate
+    doubling the bass (third) or the root.
+
+    Because the "resolution" is different depending on which note is doubled, this algorithm
+    will first figure out which note is being doubled.
+
+    Added by Jason Leung, August 2014
+    '''
+    sixThreeChord = chord.Chord(seqPossib)
+    chordQuality = sixThreeChord.quality
+
+    if chordInfo == None:
+        bass = sixThreeChord.bass()
+        root = sixThreeChord.root()
+        third = sixThreeChord.getChordStep(3)
+        fifth = sixThreeChord.getChordStep(5)
+    else:
+        [bass, root, third, fifth] = chordInfo
+
+    # If four (or more) voices, see if the root is doubled; if not, then it is implied that
+    # the bass (third) is doubled
+    if len(seqPossib) >= 4:
+        rootOccurrence = 0
+        for givenPitch in seqPossib:
+            rootOccurrence += (givenPitch.name == root.name)
+        doubledRoot = (rootOccurrence >= 2)
+        firstInstance = True # First instance of the root
+
+        howToResolve = \
+        [(lambda p: p == bass, bassJump)]
+
+        if doubledRoot:
+            if chordQuality == 'major' and resQuality == 'major':
+                howToResolve.append((lambda p: p.name == root.name and firstInstance, 'M-2'))
+                howToResolve.append((lambda p: p.name == root.name and not firstInstance, 'M2'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'M-2'))
+            elif chordQuality == 'major' and resQuality == 'minor':
+                howToResolve.append((lambda p: p.name == root.name and firstInstance, 'm-2'))
+                howToResolve.append((lambda p: p.name == root.name and not firstInstance, 'M2'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'm-2'))
+            elif chordQuality == 'major' and resQuality == 'diminished':
+                howToResolve.append((lambda p: p.name == root.name and firstInstance, 'm-2'))
+                howToResolve.append((lambda p: p.name == root.name and not firstInstance, 'M2'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'M-2'))
+            elif chordQuality == 'minor' and resQuality == 'major':
+                howToResolve.append((lambda p: p.name == root.name and firstInstance, 'M-2'))
+                howToResolve.append((lambda p: p.name == root.name and not firstInstance, 'M2'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'M-2'))
+            elif chordQuality == 'minor' and resQuality == 'minor':
+                howToResolve.append((lambda p: p.name == root.name and firstInstance, 'M-2'))
+                howToResolve.append((lambda p: p.name == root.name and not firstInstance, 'm2'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'M-2'))
+            elif chordQuality == 'diminished' and resQuality == 'minor':
+                howToResolve.append((lambda p: p.name == root.name and firstInstance, 'M-2'))
+                howToResolve.append((lambda p: p.name == root.name and not firstInstance, 'm2'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'm-2'))
+        else:
+            if chordQuality == 'major' and resQuality == 'major':
+                howToResolve.append((lambda p: p.name == root.name, 'M-2'))
+                howToResolve.append((lambda p: p.name == bass.name, 'A-4'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'M-2'))
+            elif chordQuality == 'major' and resQuality == 'minor':
+                howToResolve.append((lambda p: p.name == root.name, 'm-2'))
+                howToResolve.append((lambda p: p.name == bass.name, 'P-4'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'm-2'))
+            elif chordQuality == 'major' and resQuality == 'diminished':
+                howToResolve.append((lambda p: p.name == root.name, 'm-2'))
+                howToResolve.append((lambda p: p.name == bass.name, 'P-4'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'M-2'))
+            elif chordQuality == 'minor' and resQuality == 'major':
+                howToResolve.append((lambda p: p.name == root.name, 'M-2'))
+                howToResolve.append((lambda p: p.name == bass.name, 'P-4'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'M-2'))
+            elif chordQuality == 'minor' and resQuality == 'minor':
+                howToResolve.append((lambda p: p.name == root.name, 'M-2'))
+                howToResolve.append((lambda p: p.name == bass.name, 'P-4'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'm-2'))
+            elif chordQuality == 'diminished' and resQuality == 'minor':
+                howToResolve.append((lambda p: p.name == root.name, 'M-2'))
+                howToResolve.append((lambda p: p.name == bass.name, 'P-4'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'm-2'))
+
+        #!---------- Custom version of _resolvePitches() ----------!
+        howToResolve.append((lambda p: True, 'P1'))
+        resPitches = []
+        for samplePitch in seqPossib:
+            for (expression, intervalString) in howToResolve:
+                if expression(samplePitch):
+                    resPitches.append(_transpose(samplePitch, intervalString))
+                    break
+            if samplePitch.name == root.name:
+                firstInstance = False
+        
+        return tuple(resPitches)
+        
+    else:
+        howToResolve = \
+        [(lambda p: p.name == bass.name, bassJump)]
+
+        if chordQuality == 'major' and resQuality == 'major':
+            howToResolve.append((lambda p: p.name == root.name, 'M-2'))
+            howToResolve.append((lambda p: p.name == fifth.name, 'M-2'))
+        elif chordQuality == 'major' and resQuality == 'minor':
+            howToResolve.append((lambda p: p.name == root.name, 'm-2'))
+            howToResolve.append((lambda p: p.name == fifth.name, 'm-2'))
+        elif chordQuality == 'major' and resQuality == 'diminished':
+            howToResolve.append((lambda p: p.name == root.name, 'm-2'))
+            howToResolve.append((lambda p: p.name == fifth.name, 'M-2'))
+        elif chordQuality == 'minor' and resQuality == 'major':
+            howToResolve.append((lambda p: p.name == root.name, 'M-2'))
+            howToResolve.append((lambda p: p.name == fifth.name, 'M-2'))
+        elif chordQuality == 'minor' and resQuality == 'minor':
+            howToResolve.append((lambda p: p.name == root.name, 'M-2'))
+            howToResolve.append((lambda p: p.name == fifth.name, 'M-2'))
+        elif chordQuality == 'diminished' and resQuality == 'minor':
+            howToResolve.append((lambda p: p.name == root.name, 'M-2'))
+            howToResolve.append((lambda p: p.name == fifth.name, 'm-2'))
+
+        return _resolvePitches(seqPossib, howToResolve)
+
 def fiveSixSuspension(susPossib, resQuality = 'minor', bassJump = 'P1', chordInfo = None):
     '''
     Also known as the 5–6 technique, this creates a 5–6 suspension over the bass.
@@ -1267,7 +1390,7 @@ _DOC_ORDER = [augmentedSixthToDominant,
               nineEightSuspension,
               seventhChordDescendingFifths, authenticCadence, dominantTonicInversions,
               deceptiveCadenceToMinor, deceptiveCadenceToMajor,
-              twoSixFiveToDominant, twoSixFiveToDominantSus4,
+              twoSixFiveToDominant, twoSixFiveToDominantSus4, descendingSixThreeSequence,
               fiveSixSuspension, fiveSixSeriesAscending, descendingFiveSix,
               sevenSixSuspension, sevenSixSeries]
 
