@@ -1238,7 +1238,7 @@ def descendingFiveSix(seqPossib, resQuality = 'major', bassJump = 'm-2', chordIn
     in thirds, but with the jump in the bass filled in using first inversion chords (6/3).
     E.g.: The progression I–vi–IV–ii–etc. becomes I–[V6]–vi–[iii6]–IV–ii(6)–etc.
 
-    A special case – the progression minor v–bii6 (Neapolitan sixth) – is checked first, as
+    A special case – the progression minor v–bII6 (Neapolitan sixth) – is checked first, as
     it has a different voice leading pattern.
 
     Added by Jason Leung, August 2014
