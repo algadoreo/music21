@@ -1229,7 +1229,7 @@ def fiveSixSeriesAscending(seqPossib, resQuality = 'minor', bassJump = 'M2', cho
 
     return _resolvePitches(seqPossib, howToResolve)
 
-def descendingFiveSix(seqPossib, bassJump = 'm-2', chordInfo = None):
+def descendingFiveSix(seqPossib, resQuality = 'major', bassJump = 'm-2', chordInfo = None):
     '''
     Realizes the descending 5–6 sequence (a.k.a. "descending thirds"), where a stepwise-
     descending bass line is realized using an alternating 5/3–6/3 pattern.
@@ -1237,6 +1237,9 @@ def descendingFiveSix(seqPossib, bassJump = 'm-2', chordInfo = None):
     Harmonically, this is understood as a series of root position chords (5/3) descending
     in thirds, but with the jump in the bass filled in using first inversion chords (6/3).
     E.g.: The progression I–vi–IV–ii–etc. becomes I–[V6]–vi–[iii6]–IV–ii(6)–etc.
+
+    A special case – the progression minor v–bii6 (Neapolitan sixth) – is checked first, as
+    it has a different voice leading pattern.
 
     Added by Jason Leung, August 2014
     '''
@@ -1251,7 +1254,13 @@ def descendingFiveSix(seqPossib, bassJump = 'm-2', chordInfo = None):
     else:
         [bass, root, third, fifth] = chordInfo
 
-    if seqPossib[0].name == bass.name:
+    if chordQuality == 'minor' and resQuality == 'major':
+        howToResolve = \
+        [(lambda p: p == bass, bassJump),
+        (lambda p: p.name == bass.name, 'm2'),
+        (lambda p: p.name == third.name, 'M-2'),
+        (lambda p: p.name == fifth.name, 'd1')]
+    elif seqPossib[0].name == bass.name:
         howToResolve = \
         [(lambda p: p == bass, bassJump),
         (lambda p: p.name == bass.name, 'M2'),

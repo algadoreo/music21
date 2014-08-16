@@ -828,7 +828,7 @@ class Segment(object):
          (descendingSixThrees, resolution.descendingSixThreeSequence, [resQuality, bassInterval.directedName, chordInfo]),
          (fiveSixSuspension, resolution.fiveSixSuspension, [resQuality, bassInterval.directedName, chordInfo]),
          (couldBeFiveSixSeriesContinued, resolution.fiveSixSeriesAscending, [resQuality, bassInterval.directedName, chordInfo]),
-         (descendingFiveSix, resolution.descendingFiveSix, [bassInterval.directedName, chordInfo]),
+         (descendingFiveSix, resolution.descendingFiveSix, [resQuality, bassInterval.directedName, chordInfo]),
          (couldBeSevenSixSeriesContinued, resolution.sevenSixSeries, [bassInterval.directedName, chordInfo])]
 
         if couldBeVIProgression or couldBeVtoI6Progression or descendingSixThrees or fiveSixSuspension or couldBeFiveSixSeriesContinued or descendingFiveSix or couldBeSevenSixSeriesContinued:
