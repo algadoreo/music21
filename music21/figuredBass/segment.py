@@ -331,7 +331,7 @@ class Segment(object):
         if fbRules is None:
             fbRules = rules.Rules()
 
-        isDominantSeventh = self.segmentChord.isDominantSeventh()
+        isDominantSeventh = (self.segmentChord.isDominantSeventh() and self.segmentChord.inversionName() != 7)
         isDiminishedSeventh = self.segmentChord.isDiminishedSeventh()
         isAugmentedSixth = self.segmentChord.isAugmentedSixth()
 
