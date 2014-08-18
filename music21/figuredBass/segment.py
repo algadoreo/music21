@@ -701,14 +701,18 @@ class Segment(object):
         resFifthQuality = interval.notesToInterval(resBass, resFifth).simpleName if resComplete else None
         resSeventhQuality = interval.notesToInterval(resBass, resSeventh).simpleName
 
+        bassInterval = interval.notesToInterval(bass, resBass)
+
         toDominantSeventh = (resThirdQuality == 'M3' and resSeventhQuality == 'm7')
         toHalfDiminishedSeventh = (resFifthQuality == 'd5' and resSeventhQuality == 'm7')
 
         seventhSequence = (resSeventh != None)
         if not seventhSequence:
             self.leadingTone = third.name
+            subdominantSeventhToCadentialSixFour = (bassInterval.directedName == 'M2' and resChord.isTriad() and resChord.inversion() == 2)
+            subdominantSeventhToDominantSus4 = (bassInterval.directedName == 'M2' and not resChord.isTriad() and resChord.getChordStep(4, testRoot=resBass) != None)
+            self.fbRules.forbidIncompletePossibilities = (subdominantSeventhToCadentialSixFour or subdominantSeventhToDominantSus4)
 
-        bassInterval = interval.notesToInterval(bass, resBass)
         descendingFifths = (bassInterval.generic.directed == 4 or bassInterval.generic.directed == -5)
         descendingFifthsToFirstInversion = (bassInterval.generic.simpleDirected == 6 or bassInterval.generic.simpleDirected == -3)
         toDeceptiveCadence = (bassInterval.generic.simpleDirected == 2 and resChord.isTriad() and resChord.inversion() == 0)
@@ -724,6 +728,8 @@ class Segment(object):
          (resChord.isTriad() and descendingFifthsToFirstInversion, resolution.dominantTonicInversions, [resChord.quality, bassInterval.directedName, chordInfo]),
          (toDeceptiveCadence and resThirdQuality == 'm3', resolution.deceptiveCadenceToMinor, [bassInterval.directedName, chordInfo]),
          (toDeceptiveCadence and resThirdQuality == 'M3', resolution.deceptiveCadenceToMajor, [bassInterval.directedName, chordInfo]),
+         (not seventhSequence and subdominantSeventhToCadentialSixFour, resolution.fourSevenToCadentialSixFour, [bassInterval.directedName, chordInfo]),
+         (not seventhSequence and subdominantSeventhToDominantSus4, resolution.fourSevenToDominantSus4, [bassInterval.directedName, chordInfo]),        
          (sevenSixSuspension, resolution.sevenSixSuspension, [bassInterval.directedName, chordInfo])]
 
         try:

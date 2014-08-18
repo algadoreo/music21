@@ -1046,6 +1046,56 @@ def twoSixFiveToDominantSus4(sevPossib, bassJump = 'M2', chordInfo = None):
 
     return _resolvePitches(sevPossib, howToResolve)
 
+def fourSevenToCadentialSixFour(sevPossib, bassJump = 'M2', chordInfo = None):
+    '''
+    Realizes the IV7–V[6/4–5/3] or iv7–V[6/4–5/3] progression. The seventh does not
+    resolve immediately but is sustained into the V chord as the dissonant sixth before
+    resolving downward by step (to the fifth).
+
+    Added by Jason Leung, August 2014
+    '''
+    seventhChord = chord.Chord(sevPossib)
+    chordQuality = seventhChord.quality
+
+    if chordInfo == None:
+        chordInfo = _unpackSeventhChord(seventhChord)
+    else:
+        [bass, third, fifth, seventh] = chordInfo
+
+    howToResolve = \
+    [(lambda p: p.name == bass.name, bassJump),
+    (lambda p: p.name == third.name and chordQuality == 'major', 'M-2'),
+    (lambda p: p.name == third.name and chordQuality == 'minor', 'm-2')]
+
+    return _resolvePitches(sevPossib, howToResolve)
+
+def fourSevenToDominantSus4(sevPossib, bassJump = 'M2', chordInfo = None):
+    '''
+    Realizes the IV7–V[4–3] or iv7–V[4–3] progression. The fifth is sustained into the
+    dominant chord as the dissonant fourth before resolving downward by step (to the
+    leading tone).
+
+    Added by Jason Leung, August 2014
+    '''
+    seventhChord = chord.Chord(sevPossib)
+    chordQuality = seventhChord.quality
+
+    if chordInfo == None:
+        chordInfo = _unpackSeventhChord(seventhChord)
+    else:
+        [bass, third, fifth, seventh] = chordInfo
+
+    seventhQuality = interval.notesToInterval(bass, seventh).simpleName
+
+    howToResolve = \
+    [(lambda p: p.name == bass.name, bassJump),
+    (lambda p: p.name == third.name and chordQuality == 'major', 'M-2'),
+    (lambda p: p.name == third.name and chordQuality == 'minor', 'm-2'),
+    (lambda p: p.name == seventh.name and seventhQuality == 'M7', 'M-2'),
+    (lambda p: p.name == seventh.name and seventhQuality == 'm7', 'm-2')]
+
+    return _resolvePitches(sevPossib, howToResolve)
+
 def descendingSixThreeSequence(seqPossib, resQuality = 'major', bassJump = 'm-2', chordInfo = None):
     '''
     Realizes the descending 6/3 sequence, where a stepwise-descending bass supports a
@@ -1399,7 +1449,8 @@ _DOC_ORDER = [augmentedSixthToDominant,
               nineEightSuspension,
               seventhChordDescendingFifths, authenticCadence, dominantTonicInversions,
               deceptiveCadenceToMinor, deceptiveCadenceToMajor,
-              twoSixFiveToDominant, twoSixFiveToDominantSus4, descendingSixThreeSequence,
+              twoSixFiveToDominant, twoSixFiveToDominantSus4,
+              fourSevenToCadentialSixFour, fourSevenToDominantSus4, descendingSixThreeSequence,
               fiveSixSuspension, fiveSixSeriesAscending, descendingFiveSix,
               sevenSixSuspension, sevenSixSeries]
 
