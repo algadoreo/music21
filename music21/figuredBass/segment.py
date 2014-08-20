@@ -809,7 +809,7 @@ class Segment(object):
         if descendingSixThrees:
             self.leadingTone = chordInfo[3].name # The fifth isn't actually the LT, but that's the note that never gets doubled
 
-        fiveSixSuspension = (bassInterval.directedName == 'P1' and (thisChord.isTriad() and thisChord.inversion() == 0) and (resChord.isTriad() and resChord.inversion() == 1))
+        fiveSixSuspension = (bassInterval.directedSimpleName == 'P1' and (thisChord.isTriad() and thisChord.inversion() == 0) and (resChord.isTriad() and resChord.inversion() == 1))
         if fiveSixSuspension:
             self.doubledNote = bass.name
             self.fbRules.specificDoubling = True
