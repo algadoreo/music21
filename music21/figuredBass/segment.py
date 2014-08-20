@@ -828,6 +828,8 @@ class Segment(object):
         segmentB.fbRules.checkIfProperSeventhChord = triadToRootPositionSeventhChord
         couldBeSevenSixSeriesContinued = (triadToRootPositionSeventhChord and thisChord.inversion() == 1 and bassInterval.generic.simpleDirected == -2 and resBass.tie != None)
 
+        sixToFourTwo = (bassInterval.directedSimpleName == 'P1' and thisChord.inversionName() == 6 and resChord.inversion() == 3)
+
         specialResolutionMethods = \
         [(couldBeVIProgression, resolution.authenticCadence, [resQuality, bassInterval.directedName, chordInfo[1:]]),
          (couldBeVtoI6Progression, resolution.dominantTonicInversions, [resQuality, bassInterval.directedName, chordInfo[1:]]),
@@ -835,9 +837,10 @@ class Segment(object):
          (fiveSixSuspension, resolution.fiveSixSuspension, [resQuality, bassInterval.directedName, chordInfo]),
          (couldBeFiveSixSeriesContinued, resolution.fiveSixSeriesAscending, [resQuality, bassInterval.directedName, chordInfo]),
          (descendingFiveSix, resolution.descendingFiveSix, [resQuality, bassInterval.directedName, chordInfo]),
-         (couldBeSevenSixSeriesContinued, resolution.sevenSixSeries, [bassInterval.directedName, chordInfo])]
+         (couldBeSevenSixSeriesContinued, resolution.sevenSixSeries, [bassInterval.directedName, chordInfo]),
+         (sixToFourTwo, resolution.sixToFourTwoSuspension, [resQuality, bassInterval.directedName, chordInfo])]
 
-        if couldBeVIProgression or couldBeVtoI6Progression or descendingSixThrees or fiveSixSuspension or couldBeFiveSixSeriesContinued or descendingFiveSix or couldBeSevenSixSeriesContinued:
+        if couldBeVIProgression or couldBeVtoI6Progression or descendingSixThrees or fiveSixSuspension or couldBeFiveSixSeriesContinued or descendingFiveSix or couldBeSevenSixSeriesContinued or sixToFourTwo:
             return self._resolveSpecialSegment(segmentB, specialResolutionMethods)
         else:
             return self._resolveOrdinarySegment(segmentB)

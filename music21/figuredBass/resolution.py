@@ -1375,6 +1375,132 @@ def sevenSixSeries(seqPossib, bassJump = '-m2', chordInfo = None):
 
     return _resolvePitches(seqPossib, howToResolve)
 
+def sixToFourTwoSuspension(susPossib, resQuality = 'major', bassJump = 'P1', chordInfo = None):
+    '''
+    Realizes the 6–4/2 progression over a suspended (stationary) bass.
+
+    Note: seventh chord qualities only based on their base triad and therefore not entirely accurate.
+    For example, a dominant 7th is labeled as "major" while a half-diminished 7th is "diminished."
+    (Such instances are commented in the code) This was deemed acceptable since the 7th is in the bass
+    and therefore does not need to be considered (i.e. its movement is given by the score).
+
+    Added by Jason Leung, August 2014
+    '''
+    susChord = chord.Chord(susPossib)
+    chordQuality = susChord.quality
+
+    if chordInfo == None:
+        bass = susChord.bass()
+        root = susChord.root()
+        third = susChord.getChordStep(3)
+        fifth = susChord.getChordStep(5)
+    else:
+        [bass, root, third, fifth] = chordInfo
+
+    # If four voices, see which note is doubled – treatment is different depending on the doubling
+    if len(susPossib) == 4:
+        rootOccurrence = 0
+        thirdOccurrence = 0
+        fifthOccurrence = 0
+        for givenPitch in susPossib:
+            rootOccurrence += (givenPitch.name == root.name)
+            thirdOccurrence += (givenPitch.name == third.name)
+            fifthOccurrence += (givenPitch.name == fifth.name)
+        doubledRoot = (rootOccurrence >= 2)
+        doubledThird = (thirdOccurrence >= 2) # third is bass
+        doubledFifth = (fifthOccurrence >= 2)
+        firstInstance = True # First instance of the doubled note
+
+        howToResolve = \
+        [(lambda p: p == bass, bassJump)]
+
+        if doubledRoot:
+            if chordQuality == 'major' and resQuality == 'major':
+                howToResolve.append((lambda p: p.name == root.name and firstInstance, 'm-3'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'M-2'))
+            elif chordQuality == 'major' and resQuality == 'diminished': # currently this 'diminished' means 'half-diminished'; should be fine since 7th is in bass
+                howToResolve.append((lambda p: p.name == root.name and firstInstance, 'm-3'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'm-2'))
+            elif chordQuality == 'minor' and resQuality == 'major': # currently this 'major' means 'dominant 7th'; should be fine since 7th is in bass
+                howToResolve.append((lambda p: p.name == root.name and firstInstance, 'm-3'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'M-2'))
+            elif chordQuality == 'minor' and resQuality == 'minor':
+                howToResolve.append((lambda p: p.name == root.name and firstInstance, 'M-3'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'M-2'))
+            elif chordQuality == 'diminished' and resQuality == 'minor':
+                howToResolve.append((lambda p: p.name == root.name and firstInstance, 'M-3'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'm-2'))
+        elif doubledThird:
+            if chordQuality == 'major' and resQuality == 'major':
+                howToResolve.append((lambda p: p.name == third.name, 'm2'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'M2'))
+            elif chordQuality == 'major' and resQuality == 'diminished': # currently this 'diminished' means 'half-diminished'; should be fine since 7th is in bass
+                howToResolve.append((lambda p: p.name == third.name, 'M2'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'M2'))
+            elif chordQuality == 'minor' and resQuality == 'major': # currently this 'major' means 'dominant 7th'; should be fine since 7th is in bass
+                howToResolve.append((lambda p: p.name == third.name, 'M2'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'M2'))
+            elif chordQuality == 'minor' and resQuality == 'minor':
+                howToResolve.append((lambda p: p.name == third.name, 'M2'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'm2'))
+            elif chordQuality == 'diminished' and resQuality == 'minor':
+                howToResolve.append((lambda p: p.name == third.name, 'M2'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'M2'))
+        elif doubledFifth:
+            if chordQuality == 'major' and resQuality == 'major':
+                howToResolve.append((lambda p: p.name == fifth.name and firstInstance, 'M-2'))
+                howToResolve.append((lambda p: p.name == fifth.name and not firstInstance, 'M2'))
+            elif chordQuality == 'major' and resQuality == 'diminished': # currently this 'diminished' means 'half-diminished'; should be fine since 7th is in bass
+                howToResolve.append((lambda p: p.name == fifth.name and firstInstance, 'm-2'))
+                howToResolve.append((lambda p: p.name == fifth.name and not firstInstance, 'M2'))
+            elif chordQuality == 'minor' and resQuality == 'major': # currently this 'major' means 'dominant 7th'; should be fine since 7th is in bass
+                howToResolve.append((lambda p: p.name == fifth.name and firstInstance, 'M-2'))
+                howToResolve.append((lambda p: p.name == fifth.name and not firstInstance, 'M2'))
+            elif chordQuality == 'minor' and resQuality == 'minor':
+                howToResolve.append((lambda p: p.name == fifth.name and firstInstance, 'M-2'))
+                howToResolve.append((lambda p: p.name == fifth.name and not firstInstance, 'm2'))
+            elif chordQuality == 'diminished' and resQuality == 'minor':
+                howToResolve.append((lambda p: p.name == fifth.name and firstInstance, 'm-2'))
+                howToResolve.append((lambda p: p.name == fifth.name and not firstInstance, 'M2'))
+
+        #!---------- Custom version of _resolvePitches() ----------!
+        howToResolve.append((lambda p: True, 'P1'))
+        resPitches = []
+        for samplePitch in susPossib:
+            for (expression, intervalString) in howToResolve:
+                if expression(samplePitch):
+                    resPitches.append(_transpose(samplePitch, intervalString))
+                    break
+            if (doubledRoot and samplePitch.name == root.name) or (doubledFifth and samplePitch.name == fifth.name):
+                firstInstance = False
+        
+        return tuple(resPitches)
+
+    else:
+        howToResolve = \
+        [(lambda p: p == bass, bassJump)]
+
+        if chordQuality == 'major' and resQuality == 'major':
+            howToResolve.append((lambda p: p.name == root.name, 'm-3'))
+            howToResolve.append((lambda p: p.name == fifth.name, 'M-2'))
+        elif chordQuality == 'major' and resQuality == 'minor':
+            howToResolve.append((lambda p: p.name == root.name, 'm-3'))
+            howToResolve.append((lambda p: p.name == fifth.name, 'M-2'))
+        elif chordQuality == 'major' and resQuality == 'diminished': # currently this 'diminished' means 'half-diminished'; should be fine since 7th is in bass
+            howToResolve.append((lambda p: p.name == root.name, 'm-3'))
+            howToResolve.append((lambda p: p.name == fifth.name, 'm-2'))
+        elif chordQuality == 'minor' and resQuality == 'major': # currently this 'major' means 'dominant 7th'; should be fine since 7th is in bass
+            howToResolve.append((lambda p: p.name == root.name, 'm-3'))
+            howToResolve.append((lambda p: p.name == fifth.name, 'M-2'))
+        elif chordQuality == 'minor' and resQuality == 'minor':
+            howToResolve.append((lambda p: p.name == root.name, 'M-3'))
+            howToResolve.append((lambda p: p.name == fifth.name, 'M-2'))
+        elif chordQuality == 'diminished' and resQuality == 'minor':
+            howToResolve.append((lambda p: p.name == root.name, 'M-3'))
+            howToResolve.append((lambda p: p.name == fifth.name, 'm-2'))
+
+        return _resolvePitches(susPossib, howToResolve)
+
 '''
 transpositionsTable = {}
 def transpose(samplePitch, intervalString):
@@ -1452,7 +1578,7 @@ _DOC_ORDER = [augmentedSixthToDominant,
               twoSixFiveToDominant, twoSixFiveToDominantSus4,
               fourSevenToCadentialSixFour, fourSevenToDominantSus4, descendingSixThreeSequence,
               fiveSixSuspension, fiveSixSeriesAscending, descendingFiveSix,
-              sevenSixSuspension, sevenSixSeries]
+              sevenSixSuspension, sevenSixSeries, sixToFourTwoSuspension]
 
 #-------------------------------------------------------------------------------
 class ResolutionException(exceptions21.Music21Exception):
