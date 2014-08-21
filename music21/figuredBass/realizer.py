@@ -747,25 +747,47 @@ class Realization(object):
             for possibA in self._segmentList[0].correctA:
                 progressions.append([possibA])
             return progressions
+        elif len(self._bassLine.flat.notes) == 1:
+            #!---------- If there is only one note, find its location (index) ----------!
+            noteIndex = 0
+            while noteIndex < len(self._segmentList) and self._segmentList[noteIndex].segmentChord.isRest:
+                noteIndex += 1
+            for possibA in self._segmentList[noteIndex].correctA:
+                prog = [()]*noteIndex + [possibA]
+                progressions.append(prog)
+            return progressions
         
-        currMovements = self._segmentList[0].movements
+        #!---------- Find first note (in case of rests at beginning) ----------!
+        firstNoteIndex = 0
+        while firstNoteIndex < len(self._segmentList) and self._segmentList[firstNoteIndex].segmentChord.isRest:
+            firstNoteIndex += 1
+        indicesUntilSecondNote = 1
+        while (firstNoteIndex + indicesUntilSecondNote) < len(self._segmentList) and self._segmentList[firstNoteIndex + indicesUntilSecondNote].segmentChord.isRest:
+            indicesUntilSecondNote += 1
+
+        currMovements = self._segmentList[firstNoteIndex].movements
         for possibA in currMovements:
             possibBList = currMovements[possibA]
             for possibB in possibBList:
-                progressions.append([possibA, possibB])
+                # progressions.append([possibA, possibB])
+                prog = [()]*firstNoteIndex + [possibA] + [()]*(indicesUntilSecondNote-1) + [possibB]
+                progressions.append(prog)
 
-        for segmentIndex in range(1, len(self._segmentList)-1):
-            # TO DO: make this section compatible with rests
-            # if self._segmentList[segmentIndex].segmentChord.isRest:
-            #     progressions.append()
-            # else:
-            currMovements = self._segmentList[segmentIndex].movements
+        for segmentIndex in range(firstNoteIndex+indicesUntilSecondNote, len(self._segmentList)-1):
+            indicesUntilNextNote = 1
+            while (segmentIndex + indicesUntilNextNote) < len(self._segmentList) and self._segmentList[segmentIndex + indicesUntilNextNote].segmentChord.isRest:
+                indicesUntilNextNote += 1
+            try:
+                currMovements = self._segmentList[segmentIndex].movements
+            except:
+                continue
             for unused_progIndex in range(len(progressions)):
                 prog = progressions.pop(0)
                 possibB = prog[-1]
                 for possibC in currMovements[possibB]:
                     newProg = copy.copy(prog)
-                    newProg.append(possibC)
+                    # newProg.append(possibC)
+                    newProg += [()]*(indicesUntilNextNote-1) + [possibC]
                     progressions.append(newProg)
         
         return progressions
@@ -937,7 +959,7 @@ class Realization(object):
         .. warning:: This method is unoptimized, and may take a prohibitive amount
             of time if amountToGenerate is more than 100.
         '''
-        if amountToGenerate > self.getNumSolutions():
+        if amountToGenerate >= self.getNumSolutions():
             return self.generateAllRealizations()
         
         allSols = stream.Score()
