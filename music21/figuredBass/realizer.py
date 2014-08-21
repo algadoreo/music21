@@ -870,6 +870,7 @@ class Realization(object):
                     possibA = possibilityProgression[segmentIndex]
                     rhPitches = possibA[0:-1]
                     rhChord = chord.Chord(rhPitches)
+                    rhChord.removeRedundantPitches() # Added for aesthetics
                 rhChord.quarterLength = self._segmentList[segmentIndex].quarterLength
                 rightHand.append(rhChord)
             rightHand.insert(0.0, clef.TrebleClef())
