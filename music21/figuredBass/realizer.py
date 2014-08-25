@@ -174,6 +174,54 @@ def addLyricsToBassNote(bassNote, notationString = None):
             spacesInFront += ' '
         bassNote.addLyric(spacesInFront + fs, applyRaw = True)
 
+def _decorateSegment(rhChord, segmentQuarterLength = 1.0, decorationPattern = 0):
+    '''
+    Takes in a music21 chord.Chord() object and the segment duration in quarter lengths and returns
+    a decorated version of the chord as a list. Available patterns:
+
+    0 : (default) no decoration; plain solid chords
+    1 : ascending arppeggios, inner voices realized as grace notes
+    2 : sixteenth note arppeggios, ascending and descending
+
+    Added by Jason Leung, August 2014
+    '''
+    rhItemsList = []
+    if decorationPattern == 0:
+        rhChord.quarterLength = segmentQuarterLength
+        rhItemsList.append(rhChord)
+    elif decorationPattern == 1:
+        rhPitchesTuple = rhChord.pitches[::-1]
+        for p in rhPitchesTuple[:-1]:
+            n = note.Note(str(p)).getGrace()
+            n.duration.type = '16th'
+            rhItemsList.append(n)
+        topNote = note.Note(str(rhPitchesTuple[-1]))
+        topNote.quarterLength = segmentQuarterLength
+        rhItemsList.append(topNote)
+    elif decorationPattern == 2:
+        rhPattern = list(rhChord.pitches[::-1]) + list(rhChord.pitches)[1:]
+        if len(rhPattern)*0.25 <= segmentQuarterLength:
+            for p in rhPattern[:-1]:
+                n = note.Note(str(p))
+                n.quarterLength = 0.25
+                rhItemsList.append(n)
+            lastNote = note.Note(str(rhPattern[-1]))
+            lastNote.quarterLength = segmentQuarterLength - 0.25*(len(rhPattern)-1)
+            rhItemsList.append(lastNote)
+        elif (len(rhPattern)-1)*0.25 == segmentQuarterLength:
+            for p in rhPattern[:-1]:
+                n = note.Note(str(p))
+                n.quarterLength = 0.25
+                rhItemsList.append(n)
+        else:
+            lowerChord = chord.Chord(list(rhChord.pitches[1:]))
+            lowerChord.quarterLength = segmentQuarterLength/2.0
+            topNote = note.Note(str(rhChord.pitches[0]))
+            topNote.quarterLength = segmentQuarterLength/2.0
+            rhItemsList = [lowerChord, topNote]
+
+    return rhItemsList
+
 
 class FiguredBassLine(object):
     '''
@@ -674,7 +722,8 @@ class Realization(object):
             self._paddingLeft = fbLineOutputs['paddingLeft']
         if 'bassLine' in fbLineOutputs:
             self._bassLine = fbLineOutputs['bassLine']
-        self.keyboardStyleOutput = True 
+        self.keyboardStyleOutput = True
+        self.decorateKeyboardStyle = 0
 
     def getNumSolutions(self):
         '''
@@ -865,14 +914,20 @@ class Realization(object):
             for segmentIndex in range(len(self._segmentList)):
                 if self._segmentList[segmentIndex].segmentChord.isRest:
                     rhChord = note.Rest()
+                    rhChord.quarterLength = self._segmentList[segmentIndex].quarterLength
+                    rhItemsList = [rhChord]
                 else:
-                    #! ---------- Original code ----------!
+                    #!---------- Original code ----------!
                     possibA = possibilityProgression[segmentIndex]
                     rhPitches = possibA[0:-1]
                     rhChord = chord.Chord(rhPitches)
-                    rhChord.removeRedundantPitches() # Added for aesthetics
-                rhChord.quarterLength = self._segmentList[segmentIndex].quarterLength
-                rightHand.append(rhChord)
+                    #!---------- Decorate segment (arpeggiator) ----------!
+                    rhChord.removeRedundantPitches()
+                    rhItemsList = _decorateSegment(rhChord, self._segmentList[segmentIndex].quarterLength, self.decorateKeyboardStyle)
+                # rhChord.quarterLength = self._segmentList[segmentIndex].quarterLength
+                # rightHand.append(rhChord)
+                for n in rhItemsList:
+                    rightHand.append(n)
             rightHand.insert(0.0, clef.TrebleClef())
             
             rightHand.makeNotation(inPlace=True, cautionaryNotImmediateRepeat=False)
