@@ -789,49 +789,61 @@ class Segment(object):
         resQuality = resChord.quality
 
         bassInterval = interval.notesToInterval(bass, resBass)
-        couldBeVIProgression = ((thisChord.isMajorTriad() and thisChord.inversion() == 0) and (resChord.isTriad() and resChord.inversion() == 0) and (bassInterval.directedSimpleName == 'P4' or bassInterval.directedSimpleName == 'P-5'))
-        if couldBeVIProgression:
-            self.leadingTone = chordInfo[2].name # since chordInfo = [bass, root, third, fifth]
-            self.doubledNote = chordInfo[0].name
-            self.fbRules.specificDoubling = True
-        couldBeV6IProgression = ((thisChord.isMajorTriad() and thisChord.inversion() == 1) and (resChord.isTriad() and resChord.inversion() == 0) and bassInterval.directedName == 'm2')
-        if couldBeV6IProgression and self.fbRules.forbidIncompletePossibilities:
-            self.leadingTone = chordInfo[0].name
-            self.doubledNote = chordInfo[1].name
-            self.fbRules.specificDoubling = True
-            segmentB.doubledNote = resBass.name
-            segmentB.fbRules.specificDoubling = True
-        couldBeVtoI6Progression = ((bassInterval.generic.simpleDirected == -3 or bassInterval.generic.simpleDirected == 6) and (thisChord.isMajorTriad() and thisChord.inversion() == 0) and (resChord.isTriad() and resChord.inversion() == 1))
-        if couldBeVtoI6Progression:
-            self.leadingTone = chordInfo[2].name
 
-        descendingSixThrees = (bassInterval.generic.simpleDirected == -2 and thisChord.isTriad() and thisChord.inversion() == 1 and resChord.isTriad() and resChord.inversion() == 1)
-        if descendingSixThrees:
-            self.leadingTone = chordInfo[3].name # The fifth isn't actually the LT, but that's the note that never gets doubled
+        [couldBeVtoIProgression, couldBeV6toIProgression, couldBeVtoI6Progression, descendingSixThrees,
+        fiveSixSuspension, couldBeFiveSixSeriesContinued, descendingFiveSix, couldBeSevenSixSeriesContinued,
+        sixToFourTwo] = [0]*9
 
-        fiveSixSuspension = (bassInterval.directedSimpleName == 'P1' and (thisChord.isTriad() and thisChord.inversion() == 0) and (resChord.isTriad() and resChord.inversion() == 1))
-        if fiveSixSuspension:
-            self.doubledNote = bass.name
-            self.fbRules.specificDoubling = True
-        couldBeFiveSixSeriesContinued = ((thisChord.isTriad() and thisChord.inversion() == 1) and (resChord.isTriad() and resChord.inversion() == 0) and bassInterval.generic.simpleDirected == 2 and bass.tie != None)
-        if couldBeFiveSixSeriesContinued:
-            self.leadingTone = None
-            self.doubledNote = None
-            self.fbRules.specificDoubling = False
-        descendingFiveSix = ((bassInterval.generic.simpleDirected == -2 or bassInterval.generic.simpleDirected == 7) and (thisChord.isTriad() and thisChord.inversion() == 0) and (resChord.isTriad() and resChord.inversion() == 1))
-        if descendingFiveSix:
-            self.doubledNote = bass.name
-            self.fbRules.specificDoubling = True
+        try:
+            if thisChord.isTriad() and resChord.isTriad(): # (resChord.isTriad() or resChord.inversion() == 3):
+                # Stationary
+                if bassInterval.directedSimpleName == 'P1':
+                    fiveSixSuspension = (thisChord.inversion() == 0 and resChord.inversion() == 1)
+                # Down 2nd / Up 7th
+                elif bassInterval.generic.simpleDirected == (-2 or 7): # bassInterval.generic.simpleDirected == 7:
+                    descendingSixThrees = (thisChord.inversion() == 1 and resChord.inversion() == 1)
+                    descendingFiveSix = (thisChord.inversion() == 0 and resChord.inversion() == 1)
+                # Up 2nd
+                elif bassInterval.generic.simpleDirected == 2:
+                    if thisChord.inversion() == 1 and resChord.inversion() == 0:
+                        couldBeV6toIProgression = (bassInterval.directedName == 'm2' and thisChord.isMajorTriad())
+                        couldBeFiveSixSeriesContinued = (bass.tie != None)
+                # Down 3rd / Up 6th
+                elif bassInterval.generic.simpleDirected == (-3 or 6): # bassInterval.generic.simpleDirected == 6:
+                    couldBeVtoI6Progression = ((thisChord.isMajorTriad() and thisChord.inversion() == 0) and resChord.inversion() == 1)
+                # Up perfect 4th / Down perfect 5th
+                elif bassInterval.directedSimpleName == ('P4' or 'P-5'): # bassInterval.directedSimpleName == 'P-5':
+                    couldBeVtoIProgression = ((thisChord.isMajorTriad() and thisChord.inversion() == 0) and resChord.inversion() == 0)
 
-        triadToRootPositionSeventhChord = (thisChord.isTriad() and resChord.getChordStep(7, testRoot=segmentB.bassNote) != None)
-        segmentB.fbRules.forbidIncompletePossibilities = (not triadToRootPositionSeventhChord)
-        segmentB.fbRules.checkIfProperSeventhChord = triadToRootPositionSeventhChord
-        couldBeSevenSixSeriesContinued = (triadToRootPositionSeventhChord and thisChord.inversion() == 1 and bassInterval.generic.simpleDirected == -2 and resBass.tie != None)
+                if couldBeV6toIProgression and not couldBeFiveSixSeriesContinued and self.fbRules.forbidIncompletePossibilities:
+                    self.leadingTone = chordInfo[0].name
+                    self.fbRules.specificDoubling = True
+                    self.doubledNote = chordInfo[1].name
+                    segmentB.fbRules.specificDoubling = True
+                    segmentB.doubledNote = resBass.name
+                elif couldBeVtoIProgression or couldBeVtoI6Progression:
+                    self.leadingTone = chordInfo[2].name
+                elif descendingSixThrees:
+                    self.leadingTone = chordInfo[3].name
 
-        sixToFourTwo = (bassInterval.directedSimpleName == 'P1' and thisChord.inversionName() == 6 and resChord.inversion() == 3)
+                if couldBeVtoIProgression or fiveSixSuspension or descendingFiveSix:
+                    self.fbRules.specificDoubling = True
+                    self.doubledNote = chordInfo[0].name
+
+            elif thisChord.isTriad():
+                triadToRootPositionSeventhChord = (resChord.getChordStep(7, testRoot=segmentB.bassNote) != None)
+                segmentB.fbRules.forbidIncompletePossibilities = (not triadToRootPositionSeventhChord)
+                segmentB.fbRules.checkIfProperSeventhChord = triadToRootPositionSeventhChord
+
+                if bassInterval.directedSimpleName == 'P1':
+                    sixToFourTwo = (thisChord.inversion() == 1 and resChord.inversion() == 3)
+                elif bassInterval.generic.simpleDirected == -2:
+                    couldBeSevenSixSeriesContinued = (triadToRootPositionSeventhChord and thisChord.inversion() == 1 and bass.tie != None) # original: resBass.tie != None
+        except:
+            self._environRules.warn((chordInfo, "is not a known chord. Executing ordinary resolution."))
 
         specialResolutionMethods = \
-        [(couldBeVIProgression, resolution.authenticCadence, [resQuality, bassInterval.directedName, chordInfo[1:]]),
+        [(couldBeVtoIProgression, resolution.authenticCadence, [resQuality, bassInterval.directedName, chordInfo[1:]]),
          (couldBeVtoI6Progression, resolution.dominantTonicInversions, [resQuality, bassInterval.directedName, chordInfo[1:]]),
          (descendingSixThrees, resolution.descendingSixThreeSequence, [resQuality, bassInterval.directedName, chordInfo]),
          (fiveSixSuspension, resolution.fiveSixSuspension, [resQuality, bassInterval.directedName, chordInfo]),
@@ -840,7 +852,7 @@ class Segment(object):
          (couldBeSevenSixSeriesContinued, resolution.sevenSixSeries, [bassInterval.directedName, chordInfo]),
          (sixToFourTwo, resolution.sixToFourTwoSuspension, [resQuality, bassInterval.directedName, chordInfo])]
 
-        if couldBeVIProgression or couldBeVtoI6Progression or descendingSixThrees or fiveSixSuspension or couldBeFiveSixSeriesContinued or descendingFiveSix or couldBeSevenSixSeriesContinued or sixToFourTwo:
+        if couldBeVtoIProgression or couldBeVtoI6Progression or descendingSixThrees or fiveSixSuspension or couldBeFiveSixSeriesContinued or descendingFiveSix or couldBeSevenSixSeriesContinued or sixToFourTwo:
             return self._resolveSpecialSegment(segmentB, specialResolutionMethods)
         else:
             return self._resolveOrdinarySegment(segmentB)
