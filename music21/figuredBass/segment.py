@@ -795,12 +795,12 @@ class Segment(object):
         sixToFourTwo] = [0]*9
 
         try:
-            if thisChord.isTriad() and resChord.isTriad(): # (resChord.isTriad() or resChord.inversion() == 3):
+            if thisChord.isTriad() and resChord.isTriad():
                 # Stationary
                 if bassInterval.directedSimpleName == 'P1':
                     fiveSixSuspension = (thisChord.inversion() == 0 and resChord.inversion() == 1)
                 # Down 2nd / Up 7th
-                elif bassInterval.generic.simpleDirected == (-2 or 7): # bassInterval.generic.simpleDirected == 7:
+                elif bassInterval.generic.simpleDirected in [-2, 7]:
                     descendingSixThrees = (thisChord.inversion() == 1 and resChord.inversion() == 1)
                     descendingFiveSix = (thisChord.inversion() == 0 and resChord.inversion() == 1)
                 # Up 2nd
@@ -809,10 +809,10 @@ class Segment(object):
                         couldBeV6toIProgression = (bassInterval.directedName == 'm2' and thisChord.isMajorTriad())
                         couldBeFiveSixSeriesContinued = (bass.tie != None)
                 # Down 3rd / Up 6th
-                elif bassInterval.generic.simpleDirected == (-3 or 6): # bassInterval.generic.simpleDirected == 6:
+                elif bassInterval.generic.simpleDirected in [-3, 6]:
                     couldBeVtoI6Progression = ((thisChord.isMajorTriad() and thisChord.inversion() == 0) and resChord.inversion() == 1)
                 # Up perfect 4th / Down perfect 5th
-                elif bassInterval.directedSimpleName == ('P4' or 'P-5'): # bassInterval.directedSimpleName == 'P-5':
+                elif bassInterval.directedSimpleName in ['P4', 'P-5']:
                     couldBeVtoIProgression = ((thisChord.isMajorTriad() and thisChord.inversion() == 0) and resChord.inversion() == 0)
 
                 if couldBeV6toIProgression and not couldBeFiveSixSeriesContinued and self.fbRules.forbidIncompletePossibilities:
