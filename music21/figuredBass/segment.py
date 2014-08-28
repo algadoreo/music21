@@ -713,8 +713,8 @@ class Segment(object):
             subdominantSeventhToDominantSus4 = (bassInterval.directedName == 'M2' and not resChord.isTriad() and resChord.getChordStep(4, testRoot=resBass) != None)
             self.fbRules.forbidIncompletePossibilities = (subdominantSeventhToCadentialSixFour or subdominantSeventhToDominantSus4)
 
-        descendingFifths = (bassInterval.generic.directed == 4 or bassInterval.generic.directed == -5)
-        descendingFifthsToFirstInversion = (bassInterval.generic.simpleDirected == 6 or bassInterval.generic.simpleDirected == -3)
+        descendingFifths = (bassInterval.generic.directed in [4, -5])
+        descendingFifthsToFirstInversion = (bassInterval.generic.simpleDirected in [6, -3])
         toDeceptiveCadence = (bassInterval.generic.simpleDirected == 2 and resChord.isTriad() and resChord.inversion() == 0)
         sevenSixSuspension = (bassInterval.generic.directed == 1 and resChord.isTriad() and resChord.inversion() == 1)
         if sevenSixSuspension:
