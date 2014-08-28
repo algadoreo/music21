@@ -688,6 +688,7 @@ class Segment(object):
         seventh = seventhChord.getChordStep(7, testRoot=bass)
         chordInfo = [bass, third, fifth, seventh]
 
+        thirdQuality = interval.notesToInterval(bass, third).simpleName
         seventhQuality = interval.notesToInterval(bass, seventh).simpleName
 
         resChord = segmentB.segmentChord
@@ -715,7 +716,7 @@ class Segment(object):
 
         descendingFifths = (bassInterval.generic.directed in [4, -5])
         descendingFifthsToFirstInversion = (bassInterval.generic.simpleDirected in [6, -3])
-        toDeceptiveCadence = (bassInterval.generic.simpleDirected == 2 and resChord.isTriad() and resChord.inversion() == 0)
+        toDeceptiveCadence = (bassInterval.generic.simpleDirected == 2 and (thirdQuality == 'M3' and seventhQuality == 'm7') and resChord.isTriad() and resChord.inversion() == 0)
         sevenSixSuspension = (bassInterval.generic.directed == 1 and resChord.isTriad() and resChord.inversion() == 1)
         if sevenSixSuspension:
             self.fbRules.forbidIncompletePossibilities = False

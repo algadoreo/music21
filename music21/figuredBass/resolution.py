@@ -996,7 +996,8 @@ def deceptiveCadenceToMajor(cadPossib, bassJump = 'm2', chordInfo = None):
     complete = (fifth != None)
 
     howToResolve = \
-    [(lambda p: p.name == bass.name, '-M3'),
+    [(lambda p: p == bass, bassJump),
+    (lambda p: p.name == bass.name, '-M3'),
     (lambda p: p.name == third.name, 'm2')]
 
     if complete:
