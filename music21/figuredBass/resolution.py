@@ -834,6 +834,9 @@ def seventhChordDescendingFifths(sevPossib, toDominantSeventh = False, toHalfDim
     fifthQuality = interval.notesToInterval(bass, fifth).simpleName if complete else None
     seventhQuality = interval.notesToInterval(bass, seventh).simpleName
 
+    if (thirdQuality == 'M3' and seventhQuality == 'm7'):
+        return authenticCadenceSus7(sevPossib, bassJump, chordInfo)
+
     howToResolve = \
     [(lambda p: p == bass, bassJump),
     (lambda p: p.name == bass.name, 'P1'),
@@ -903,6 +906,38 @@ def authenticCadence(cadPossib, resThirdQuality = 'M3', bassJump = 'P4', chordIn
             howToResolve.append((lambda p: p.name == seventh.name, '-M2'))
 
     return _resolvePitches(cadPossib, howToResolve)
+
+def authenticCadenceSus7(domPossib, bassJump = 'P4', chordInfo = None):
+    '''
+    Sometimes the composer will delay the leading tone resolution so that we get (at least temporarily)
+    a V(7)–I7. Such a progression may also appear in an extended seventh sequence of descending fifths.
+
+    Added by Jason Leung, August 2014
+    '''
+    if chordInfo == None:
+        domChord = chord.Chord(domPossib)
+        bass = domChord.bass()
+        third = domChord.getChordStep(3, testRoot=bass)
+        fifth = domChord.getChordStep(5, testRoot=bass)
+        seventh = domChord.getChordStep(7, testRoot=bass)
+    else:
+        [bass, third, fifth] = chordInfo[:3]
+        seventh = chordInfo[3] if len(chordInfo) >= 4 else None
+
+    complete = (fifth != None)
+
+    howToResolve = \
+    [(lambda p: p == bass, bassJump),
+    (lambda p: p.name == bass.name and seventh == None, 'm-3')]
+    # TO DO: add support for minor triad (sus7) resolution
+
+    if complete:
+        howToResolve.append((lambda p: p.name == fifth.name, '-M2'))
+
+    if seventh != None:
+        howToResolve.append((lambda p: p.name == seventh.name, '-m2'))
+
+    return _resolvePitches(domPossib, howToResolve)
 
 def dominantTonicInversions(domPossib, resThirdQuality = 'M3', bassJump = '-m3', chordInfo = None):
     '''
@@ -1581,8 +1616,8 @@ _DOC_ORDER = [augmentedSixthToDominant,
               diminishedSeventhToMajorTonic, diminishedSeventhToMinorTonic,
               diminishedSeventhToMajorSubdominant, diminishedSeventhToMinorSubdominant,
               fourThreeSuspensionToMajorTriad, fourThreeSuspensionToMinorTriad,
-              nineEightSuspension,
-              seventhChordDescendingFifths, authenticCadence, dominantTonicInversions,
+              nineEightSuspension, seventhChordDescendingFifths,
+              authenticCadence, authenticCadenceSus7, dominantTonicInversions,
               deceptiveCadenceToMinor, deceptiveCadenceToMajor,
               twoSixFiveToDominant, twoSixFiveToDominantSus4,
               fourSevenToCadentialSixFour, fourSevenToDominantSus4, descendingSixThreeSequence,

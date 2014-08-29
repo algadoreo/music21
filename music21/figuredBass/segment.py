@@ -791,9 +791,9 @@ class Segment(object):
 
         bassInterval = interval.notesToInterval(bass, resBass)
 
-        [couldBeVtoIProgression, couldBeV6toIProgression, couldBeVtoI6Progression, descendingSixThrees,
-        fiveSixSuspension, couldBeFiveSixSeriesContinued, descendingFiveSix, couldBeSevenSixSeriesContinued,
-        sixToFourTwo] = [0]*9
+        [couldBeVtoIProgression, couldBeVtoI7Progression, couldBeVtoI6Progression, couldBeV6toIProgression,
+        descendingSixThrees, fiveSixSuspension, couldBeFiveSixSeriesContinued, descendingFiveSix, 
+        couldBeSevenSixSeriesContinued, sixToFourTwo] = [0]*10
 
         try:
             if thisChord.isTriad() and resChord.isTriad():
@@ -840,11 +840,18 @@ class Segment(object):
                     sixToFourTwo = (thisChord.inversion() == 1 and resChord.inversion() == 3)
                 elif bassInterval.generic.simpleDirected == -2:
                     couldBeSevenSixSeriesContinued = (triadToRootPositionSeventhChord and thisChord.inversion() == 1 and bass.tie != None) # original: resBass.tie != None
+                elif bassInterval.directedSimpleName in ['P4', 'P-5']:
+                    couldBeVtoI7Progression = ((thisChord.isMajorTriad() and thisChord.inversion() == 0) and triadToRootPositionSeventhChord)
+
+                if couldBeVtoI7Progression:
+                    self.fbRules.specificDoubling = True
+                    self.doubledNote = chordInfo[0].name
         except:
             self._environRules.warn((chordInfo, "is not a known chord. Executing ordinary resolution."))
 
         specialResolutionMethods = \
         [(couldBeVtoIProgression, resolution.authenticCadence, [resQuality, bassInterval.directedName, chordInfo[1:]]),
+         (couldBeVtoI7Progression, resolution.authenticCadenceSus7, [bassInterval.directedName, chordInfo[1:]]),
          (couldBeVtoI6Progression, resolution.dominantTonicInversions, [resQuality, bassInterval.directedName, chordInfo[1:]]),
          (descendingSixThrees, resolution.descendingSixThreeSequence, [resQuality, bassInterval.directedName, chordInfo]),
          (fiveSixSuspension, resolution.fiveSixSuspension, [resQuality, bassInterval.directedName, chordInfo]),
@@ -853,7 +860,7 @@ class Segment(object):
          (couldBeSevenSixSeriesContinued, resolution.sevenSixSeries, [bassInterval.directedName, chordInfo]),
          (sixToFourTwo, resolution.sixToFourTwoSuspension, [resQuality, bassInterval.directedName, chordInfo])]
 
-        if couldBeVtoIProgression or couldBeVtoI6Progression or descendingSixThrees or fiveSixSuspension or couldBeFiveSixSeriesContinued or descendingFiveSix or couldBeSevenSixSeriesContinued or sixToFourTwo:
+        if couldBeVtoIProgression or couldBeVtoI7Progression or couldBeVtoI6Progression or descendingSixThrees or fiveSixSuspension or couldBeFiveSixSeriesContinued or descendingFiveSix or couldBeSevenSixSeriesContinued or sixToFourTwo:
             return self._resolveSpecialSegment(segmentB, specialResolutionMethods)
         else:
             return self._resolveOrdinarySegment(segmentB)
