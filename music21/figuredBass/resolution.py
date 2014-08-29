@@ -1152,6 +1152,10 @@ def descendingSixThreeSequence(seqPossib, resQuality = 'major', bassJump = 'm-2'
                 howToResolve.append((lambda p: p.name == root.name and firstInstance, 'M-2'))
                 howToResolve.append((lambda p: p.name == root.name and not firstInstance, 'm2'))
                 howToResolve.append((lambda p: p.name == fifth.name, 'M-2'))
+            elif chordQuality == 'minor' and resQuality == 'diminished':
+                howToResolve.append((lambda p: p.name == root.name and firstInstance, 'm-2'))
+                howToResolve.append((lambda p: p.name == root.name and not firstInstance, 'M2'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'M-2'))
             elif chordQuality == 'diminished' and resQuality == 'minor':
                 howToResolve.append((lambda p: p.name == root.name and firstInstance, 'M-2'))
                 howToResolve.append((lambda p: p.name == root.name and not firstInstance, 'm2'))
@@ -1177,6 +1181,10 @@ def descendingSixThreeSequence(seqPossib, resQuality = 'major', bassJump = 'm-2'
                 howToResolve.append((lambda p: p.name == root.name, 'M-2'))
                 howToResolve.append((lambda p: p.name == bass.name, 'P-4'))
                 howToResolve.append((lambda p: p.name == fifth.name, 'm-2'))
+            elif chordQuality == 'minor' and resQuality == 'diminished':
+                howToResolve.append((lambda p: p.name == root.name, 'm-2'))
+                howToResolve.append((lambda p: p.name == bass.name, 'd-4'))
+                howToResolve.append((lambda p: p.name == fifth.name, 'M-2'))
             elif chordQuality == 'diminished' and resQuality == 'minor':
                 howToResolve.append((lambda p: p.name == root.name, 'M-2'))
                 howToResolve.append((lambda p: p.name == bass.name, 'P-4'))
