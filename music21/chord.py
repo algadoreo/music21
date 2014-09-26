@@ -1961,7 +1961,7 @@ class Chord(note.NotRest):
 
     def isDiminishedSeventh(self):
         '''Returns True if chord is a Diminished Seventh, that is, if it contains only notes that are
-        either in unison with the root, a minor third above the root, a diminished fifth, or a minor seventh
+        either in unison with the root, a minor third above the root, a diminished fifth, or a diminished seventh
         above the root. Additionally, must contain at least one of each third and fifth above the root.
         Chord must be spelled correctly. Otherwise returns false.
 
@@ -1984,6 +1984,38 @@ class Chord(note.NotRest):
             thisInterval = interval.notesToInterval(self.root(), thisPitch)
             if (thisInterval.chromatic.mod12 != 0) and (thisInterval.chromatic.mod12 != 3) and (thisInterval.chromatic.mod12 != 6) and (thisInterval.chromatic.mod12 != 9):
                 return False
+        return True
+
+    def isIncompleteDiminishedSeventh(self):
+        '''Returns True if chord is an Diminished Seventh, that is, if it contains only the notes that
+        are in unison with the root, a minor third, and a diminished seventh above the root. Additionally,
+        must contain at least one third and seventh above the root, but must not contain a fifth.
+        Chord must be spelled correctly. Otherwise returns False.
+
+
+        >>> a = chord.Chord(['c', 'e-', 'g-', 'b--']) #Complete diminished seventh chord
+        >>> a.isIncompleteDiminishedSeventh()
+        False
+        >>> b = chord.Chord(['c', 'e-', 'b--']) #Incomplete diminished seventh chord
+        >>> b.isIncompleteDiminishedSeventh()
+        True
+
+        Added by Jason Leung, September 2014 
+        '''
+        try:
+            third = self.third
+            fifth = self.fifth
+            seventh = self.seventh
+        except ChordException:
+            return False
+
+        if (third is None or fifth is not None or seventh is None):
+            return False
+        for thisPitch in self.pitches:
+            thisInterval = interval.notesToInterval(self.root(), thisPitch)
+            if thisInterval.chromatic.mod12 not in [0, 3, 9]:
+                return False
+        
         return True
 
     def isDiminishedTriad(self):
@@ -2042,6 +2074,38 @@ class Chord(note.NotRest):
             if (thisInterval.chromatic.mod12 != 0) and (thisInterval.chromatic.mod12 != 4) and (thisInterval.chromatic.mod12 != 7) and (thisInterval.chromatic.mod12 != 10):
                 return False
 
+        return True
+
+    def isIncompleteDominantSeventh(self):
+        '''Returns True if chord is an Dominant Seventh, that is, if it contains only the notes that
+        are in unison with the root, a major third, and a minor seventh above the root. Additionally,
+        must contain at least one third and seventh above the root, but must not contain a fifth.
+        Chord must be spelled correctly. Otherwise returns False.
+
+
+        >>> a = chord.Chord(['b', 'g', 'd', 'f']) #Complete dominant seventh chord
+        >>> a.isIncompleteDominantSeventh()
+        False
+        >>> b = chord.Chord(['b', 'g', 'f']) #Incomplete dominant seventh chord
+        >>> b.isIncompleteDominantSeventh()
+        True
+
+        Added by Jason Leung, September 2014 
+        '''
+        try:
+            third = self.third
+            fifth = self.fifth
+            seventh = self.seventh
+        except ChordException:
+            return False
+
+        if (third is None or fifth is not None or seventh is None):
+            return False
+        for thisPitch in self.pitches:
+            thisInterval = interval.notesToInterval(self.root(), thisPitch)
+            if thisInterval.chromatic.mod12 not in [0, 4, 10]:
+                return False
+        
         return True
 
     def isFalseDiminishedSeventh(self):
@@ -2212,6 +2276,157 @@ class Chord(note.NotRest):
             if (thisInterval.chromatic.mod12 != 0) and (thisInterval.chromatic.mod12 != 3) and (thisInterval.chromatic.mod12 != 6) and (thisInterval.chromatic.mod12 != 10):
                 return False
 
+        return True
+
+    def isIncompleteHalfDiminishedSeventh(self):
+        '''Returns True if chord is an Incomplete Half Diminished Seventh, that is, if it contains only
+        the notes that are in unison with the root, a minor third, and a minor seventh above the root.
+        Additionally, must contain at least one third and seventh above the root, but must not contain
+        a fifth. Chord must be spelled correctly. Otherwise returns False.
+
+        N.B.: this chord is indistinguishable from an incomplete minor seventh chord
+
+
+        >>> a = chord.Chord(['C', 'E-', 'G-', 'B-']) #Complete half-diminished seventh chord
+        >>> a.isIncompleteHalfDiminishedSeventh()
+        False
+        >>> b = chord.Chord(['C', 'E-', 'B-']) #Incomplete half-diminished seventh chord
+        >>> b.isIncompleteHalfDiminishedSeventh()
+        True
+
+        Added by Jason Leung, September 2014
+        '''
+        return self.isIncompleteMinorSeventh()
+
+    def isMinorSeventh(self):
+        '''Returns True if chord is a Minor Seventh, that is, if it contains only the notes that are
+        either in unison with the root, a minor third, a perfect fifth, and a minor seventh above the
+        root. Additionally, must contain at least one third, fifth, and seventh above the root (i.e. it
+        is a COMPLETE seventh chord). Chord must be spelled correctly. Otherwise returns False.
+
+
+        >>> a = chord.Chord(['C', 'E-', 'G', 'B-']) #Complete minor seventh chord
+        >>> a.isMinorSeventh()
+        True
+        >>> b = chord.Chord(['C', 'E-', 'B-']) #Incomplete minor seventh chord
+        >>> b.isMinorSeventh()
+        False
+
+        Added by Jason Leung, September 2014
+        '''
+        try:
+            third = self.third
+            fifth = self.fifth
+            seventh = self.seventh
+        except ChordException:
+            return False
+
+        if (third is None or fifth is None or seventh is None):
+            return False
+        for thisPitch in self.pitches:
+            thisInterval = interval.notesToInterval(self.root(), thisPitch)
+            if thisInterval.chromatic.mod12 not in [0, 3, 7, 10]:
+                return False
+        
+        return True
+
+    def isIncompleteMinorSeventh(self):
+        '''Returns True if chord is an Incomplete Minor Seventh, that is, if it contains only the notes
+        that are in unison with the root, a minor third, and a minor seventh above the root. Additionally,
+        must contain at least one third and seventh above the root, but must not contain a fifth. Chord
+        must be spelled correctly. Otherwise returns False.
+
+        N.B.: this chord is indistinguishable from an incomplete half-diminished chord
+
+
+        >>> a = chord.Chord(['C', 'E-', 'G', 'B-']) #Complete minor seventh chord
+        >>> a.isIncompleteMinorSeventh()
+        False
+        >>> b = chord.Chord(['C', 'E-', 'B-']) #Incomplete minor seventh chord
+        >>> b.isIncompleteMinorSeventh()
+        True
+
+        Added by Jason Leung, September 2014
+        '''
+        try:
+            third = self.third
+            fifth = self.fifth
+            seventh = self.seventh
+        except ChordException:
+            return False
+
+        if (third is None or fifth is not None or seventh is None):
+            return False
+        for thisPitch in self.pitches:
+            thisInterval = interval.notesToInterval(self.root(), thisPitch)
+            if thisInterval.chromatic.mod12 not in [0, 3, 10]:
+                return False
+        
+        return True
+
+    def isMajorSeventh(self):
+        '''Returns True if chord is a Major Seventh, that is, if it contains only the notes that are
+        either in unison with the root, a major third, a perfect fifth, and a major seventh above the
+        root. Additionally, must contain at least one third, fifth, and seventh above the root (i.e. it
+        is a COMPLETE seventh chord). Chord must be spelled correctly. Otherwise returns False.
+
+
+        >>> a = chord.Chord(['C', 'E', 'G', 'B']) #Complete major seventh chord
+        >>> a.isMajorSeventh()
+        True
+        >>> b = chord.Chord(['C', 'E', 'B']) #Incomplete major seventh chord
+        >>> b.isMajorSeventh()
+        False
+
+        Added by Jason Leung, September 2014
+        '''
+
+        try:
+            third = self.third
+            fifth = self.fifth
+            seventh = self.seventh
+        except ChordException:
+            return False
+
+        if (third is None or fifth is None or seventh is None):
+            return False
+        for thisPitch in self.pitches:
+            thisInterval = interval.notesToInterval(self.root(), thisPitch)
+            if thisInterval.chromatic.mod12 not in [0, 4, 7, 11]:
+                return False
+        
+        return True
+
+    def isIncompleteMajorSeventh(self):
+        '''Returns True if chord is an Incomplete Major Seventh, that is, if it contains only the notes
+        that are in unison with the root, a major third, and a major seventh above the root. Additionally,
+        must contain at least one third and seventh above the root, but must not contain a fifth. Chord
+        must be spelled correctly. Otherwise returns False.
+
+
+        >>> a = chord.Chord(['C', 'E', 'G', 'B']) #Complete major seventh chord
+        >>> a.isIncompleteMajorSeventh()
+        False
+        >>> b = chord.Chord(['C', 'E', 'B']) #Incomplete major seventh chord
+        >>> b.isIncompleteMajorSeventh()
+        True
+
+        Added by Jason Leung, September 2014
+        '''
+        try:
+            third = self.third
+            fifth = self.fifth
+            seventh = self.seventh
+        except ChordException:
+            return False
+
+        if (third is None or fifth is not None or seventh is None):
+            return False
+        for thisPitch in self.pitches:
+            thisInterval = interval.notesToInterval(self.root(), thisPitch)
+            if thisInterval.chromatic.mod12 not in [0, 4, 11]:
+                return False
+        
         return True
 
     def isIncompleteMajorTriad(self):
@@ -2483,6 +2698,44 @@ class Chord(note.NotRest):
 
         return True
 
+    def isIncompleteSeventh(self):
+        '''
+        Returns True if chord contains at least one Third and Seventh, and every note in
+        the chord is either a Root, Third, or Seventh, but not a Fifth, such that there are
+        no repeated scale degrees (ex: E and E-). Else return false.
+
+
+        Example:
+
+        >>> a = chord.Chord(['C', 'E', 'G', 'B']) #Complete seventh chord
+        >>> a.isIncompleteSeventh()
+        False
+        >>> b = chord.Chord(['C', 'E', 'B']) #Incomplete seventh chord
+        >>> b.isIncompleteSeventh()
+        True
+
+        Added by Jason Leung, September 2014
+        '''
+        try:
+            third = self.third
+            fifth = self.fifth
+            seventh = self.seventh
+        except ChordException:
+            return False
+
+        if (third is None or fifth is not None or seventh is None):
+            return False
+
+        if self.hasAnyRepeatedDiatonicNote():
+            return False
+
+        for thisPitch in self.pitches:
+            thisInterval = interval.notesToInterval(self.root(), thisPitch)
+            if thisInterval.diatonic.generic.mod7 not in [1, 3, 7]:
+                return False
+
+        return True
+
     def isSwissAugmentedSixth(self):
         '''
         Returns true is it is a respelled German augmented 6th chord with
@@ -2592,6 +2845,65 @@ class Chord(note.NotRest):
                 return False
             if (self.hasAnyRepeatedDiatonicNote() == True):
                 return False
+        return True
+
+    def isSusFour(self):
+        '''Returns True if chord is a Sus4 chord, that is, if it contains only notes that are
+        either in unison with the root, a perfect fourth, or a perfect fifth above the root.
+        Additionally, must contain at least one of each fourth and fifth above the root.
+        Chord must be spelled correctly. Otherwise returns false.
+
+
+        >>> a = chord.Chord(['C', 'F', 'G'])
+        >>> a.isSusFour()
+        True
+
+        Added by Jason Leung, September 2014
+        '''
+        try:
+            root = self.bass()
+            fourth = self.getChordStep(4, testRoot=root)
+            fifth = self.getChordStep(5, testRoot=root)
+        except ChordException:
+            return False
+
+        if (fourth is None or fifth is None):
+            return False
+        for thisPitch in self.pitches:
+            thisInterval = interval.notesToInterval(root, thisPitch)
+            if thisInterval.chromatic.mod12 not in [0, 5, 7]:
+                return False
+        
+        self.root(newroot=root)
+        return True
+
+    def isAddNine(self):
+        '''Returns True if chord is a Add9 chord, that is, if it contains only notes that are
+        either in unison with the root, a major/minor third, a perfect fifth, or a major/minor
+        ninth (equivalent to a second) above the root. Additionally, must contain at least one
+        of each third and ninth above the root, with the fifth being optional. Chord must be
+        spelled correctly. Otherwise returns false.
+
+
+        >>> a = chord.Chord(['C4', 'E4', 'G4', 'D5'])
+        >>> a.isAddNine()
+        True
+
+        Added by Jason Leung, September 2014
+        '''
+        try:
+            third = self.third
+            ninth = self.getChordStep(2)
+        except ChordException:
+            return False
+
+        if (third is None or ninth is None):
+            return False
+        for thisPitch in self.pitches:
+            thisInterval = interval.notesToInterval(self.root(), thisPitch)
+            if thisInterval.chromatic.mod12 not in [0, 1, 2, 3, 4, 7]:
+                return False
+        
         return True
 
     def removeRedundantPitches(self, inPlace=True):
