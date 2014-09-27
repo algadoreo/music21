@@ -339,41 +339,21 @@ class Segment(object):
         isSecondInversionTriad = (self.segmentChord.inversion() == 2 and self.segmentChord.isTriad())
 
         #!---------- See if there is a suspension that needs to be resolved ----------!
-        #!---------- This is an explicit version of the checks above, found in chord.py ----------!
-        try:
-            fourth = self.segmentChord.getChordStep(4, testRoot=self.bassNote)
-            fifth = self.segmentChord.getChordStep(5, testRoot=self.bassNote)
-            is43Suspension = not (fourth is None or fifth is None)
-        except:
-            is43Suspension = False
-
-        try:
-            ninth = self.segmentChord.getChordStep(2, testRoot=self.bassNote)
-            third = self.segmentChord.getChordStep(3, testRoot=self.bassNote)
-            isNineEightSuspension = not (ninth is None or third is None)
-        except:
-            isNineEightSuspension = False
+        isFourThreeSuspension = self.segmentChord.isSusFour()
+        isNineEightSuspension = self.segmentChord.isAddNine()
 
         #!---------- Check if it's some other seventh chord ----------!
-        try:
-            # Assume root position for now
-            seventh = self.segmentChord.getChordStep(7, testRoot=self.bassNote)
-            containsSeventh = (seventh != None)
-        except:
-            containsSeventh = False
+        containsSeventh = ((self.segmentChord.isSeventh() or self.segmentChord.isIncompleteSeventh()) and self.segmentChord.inversion() == 0)
 
         # First inversion chords, like ii6/5 (which is a minor seventh chord in major keys)
-        try:
-            isMinorSeventhFirstInversion = (self.segmentChord.inversionName() == 65 and self.segmentChord.quality == 'minor')
-        except:
-            isMinorSeventhFirstInversion = False
+        isMinorSeventhFirstInversion = (self.segmentChord.isMinorSeventh() and self.segmentChord.inversion() == 1)
 
         specialResRules = \
         [(fbRules.resolveDominantSeventhProperly and isDominantSeventh, self.resolveDominantSeventhSegment),
          (fbRules.resolveDiminishedSeventhProperly and isDiminishedSeventh, self.resolveDiminishedSeventhSegment, [fbRules.doubledRootInDim7]),
          (fbRules.resolveAugmentedSixthProperly and isAugmentedSixth, self.resolveAugmentedSixthSegment),
          (isSecondInversionTriad, self.resolveCadential64),
-         (is43Suspension, self.resolve43Suspension),
+         (isFourThreeSuspension, self.resolveFourThreeSuspension),
          (isNineEightSuspension, self.resolveNineEightSuspension),
          (containsSeventh and not (isDominantSeventh or isDiminishedSeventh), self.resolveGeneralSeventhChord),
          (isMinorSeventhFirstInversion, self.resolveMinorSeventhFirstInversion),
@@ -612,7 +592,7 @@ class Segment(object):
             self._environRules.warn("Not a cadential 6/4. Executing ordinary resolution.")
             return self._resolveOrdinarySegment(segmentB)
 
-    def resolve43Suspension(self, segmentB):
+    def resolveFourThreeSuspension(self, segmentB):
         '''
         Checks to see if the progression is a 4-3 suspension, and resolve properly if so.
 
