@@ -900,10 +900,8 @@ def authenticCadence(cadPossib, resThirdQuality = 'M3', bassJump = 'P4', chordIn
             howToResolve.append((lambda p: p.name == fifth.name and resThirdQuality in ['m3', 'minor'], 'm2'))
 
     if seventh != None:
-        if resThirdQuality == 'M3' or resThirdQuality == 'major':
-            howToResolve.append((lambda p: p.name == seventh.name, '-m2'))
-        elif resThirdQuality == 'm3' or resThirdQuality == 'minor':
-            howToResolve.append((lambda p: p.name == seventh.name, '-M2'))
+        howToResolve.append((lambda p: p.name == seventh.name and resThirdQuality in ['M3', 'major'], '-m2'))
+        howToResolve.append((lambda p: p.name == seventh.name and resThirdQuality in ['m3', 'minor'], '-M2'))
 
     return _resolvePitches(cadPossib, howToResolve)
 
