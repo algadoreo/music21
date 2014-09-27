@@ -834,7 +834,7 @@ def seventhChordDescendingFifths(sevPossib, toDominantSeventh = False, toHalfDim
     fifthQuality = interval.notesToInterval(bass, fifth).simpleName if complete else None
     seventhQuality = interval.notesToInterval(bass, seventh).simpleName
 
-    if (thirdQuality == 'M3' and seventhQuality == 'm7'):
+    if (thirdQuality == 'M3' and seventhQuality == 'm7'): # V7–I7 progression
         return authenticCadenceSus7(sevPossib, bassJump, chordInfo)
 
     howToResolve = \
@@ -925,12 +925,12 @@ def authenticCadenceSus7(domPossib, bassJump = 'P4', chordInfo = None):
     complete = (fifth != None)
 
     howToResolve = \
-    [(lambda p: p == bass, bassJump),
-    (lambda p: p.name == bass.name and seventh == None, 'm-3')]
+    [(lambda p: p == bass, bassJump)]
     # TO DO: add support for minor triad (sus7) resolution
 
     if complete:
-        howToResolve.append((lambda p: p.name == fifth.name, '-M2'))
+        howToResolve.append((lambda p: p.name == fifth.name and seventh == None, 'M2'))
+        howToResolve.append((lambda p: p.name == fifth.name, '-m3'))
 
     if seventh != None:
         howToResolve.append((lambda p: p.name == seventh.name, '-m2'))
