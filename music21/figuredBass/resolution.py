@@ -885,8 +885,8 @@ def authenticCadence(cadPossib, resThirdQuality = 'M3', bassJump = 'P4', chordIn
     if complete and cadPossib[0].name == fifth.name:
         howToResolve = \
         [(lambda p: p == bass, bassJump),
-        (lambda p: p.name == bass.name and resThirdQuality == 'major', '-m3'),
-        (lambda p: p.name == bass.name and resThirdQuality == 'minor', '-M3'),
+        (lambda p: p.name == bass.name and resThirdQuality in ['M3', 'major'], '-m3'),
+        (lambda p: p.name == bass.name and resThirdQuality in ['m3', 'minor'], '-M3'),
         (lambda p: p.name == third.name, '-M3'),
         (lambda p: p.name == fifth.name, '-M2')]
     else:
@@ -896,8 +896,8 @@ def authenticCadence(cadPossib, resThirdQuality = 'M3', bassJump = 'P4', chordIn
         (lambda p: p.name == third.name, 'm2')]
 
         if complete:
-            howToResolve.append((lambda p: p.name == fifth.name and resThirdQuality == 'major', 'M2'))
-            howToResolve.append((lambda p: p.name == fifth.name and resThirdQuality == 'minor', 'm2'))
+            howToResolve.append((lambda p: p.name == fifth.name and resThirdQuality in ['M3', 'major'], 'M2'))
+            howToResolve.append((lambda p: p.name == fifth.name and resThirdQuality in ['m3', 'minor'], 'm2'))
 
     if seventh != None:
         if resThirdQuality == 'M3' or resThirdQuality == 'major':
