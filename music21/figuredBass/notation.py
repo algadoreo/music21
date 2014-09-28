@@ -23,6 +23,8 @@ shorthandNotation = {(None,) : (5,3),
                      (7,) : (7,5,3),
                      (7,3) : (7,5,3), # addition
                      (7,5) : (7,5,3), # addition
+                     (7,None) : (7,5,3), # addition
+                     (7,5,None) : (7,5,3), # addition
                      (8,) : (8,5,3), # addition
                      (9,) : (9,5,3), # modification
                      #(9,) : (9,7,5,3),
