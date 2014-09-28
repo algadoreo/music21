@@ -2000,7 +2000,7 @@ class Chord(note.NotRest):
         >>> b.isIncompleteDiminishedSeventh()
         True
 
-        Added by Jason Leung, September 2014 
+        .. codeauthor:: Added by Jason Leung, September 2014 
         '''
         try:
             third = self.third
@@ -2090,7 +2090,7 @@ class Chord(note.NotRest):
         >>> b.isIncompleteDominantSeventh()
         True
 
-        Added by Jason Leung, September 2014 
+        .. codeauthor:: Added by Jason Leung, September 2014 
         '''
         try:
             third = self.third
@@ -2294,7 +2294,7 @@ class Chord(note.NotRest):
         >>> b.isIncompleteHalfDiminishedSeventh()
         True
 
-        Added by Jason Leung, September 2014
+        .. codeauthor:: Added by Jason Leung, September 2014
         '''
         return self.isIncompleteMinorSeventh()
 
@@ -2312,7 +2312,7 @@ class Chord(note.NotRest):
         >>> b.isMinorSeventh()
         False
 
-        Added by Jason Leung, September 2014
+        .. codeauthor:: Added by Jason Leung, September 2014
         '''
         try:
             third = self.third
@@ -2346,7 +2346,7 @@ class Chord(note.NotRest):
         >>> b.isIncompleteMinorSeventh()
         True
 
-        Added by Jason Leung, September 2014
+        .. codeauthor:: Added by Jason Leung, September 2014
         '''
         try:
             third = self.third
@@ -2378,7 +2378,7 @@ class Chord(note.NotRest):
         >>> b.isMajorSeventh()
         False
 
-        Added by Jason Leung, September 2014
+        .. codeauthor:: Added by Jason Leung, September 2014
         '''
 
         try:
@@ -2411,7 +2411,7 @@ class Chord(note.NotRest):
         >>> b.isIncompleteMajorSeventh()
         True
 
-        Added by Jason Leung, September 2014
+        .. codeauthor:: Added by Jason Leung, September 2014
         '''
         try:
             third = self.third
@@ -2714,7 +2714,7 @@ class Chord(note.NotRest):
         >>> b.isIncompleteSeventh()
         True
 
-        Added by Jason Leung, September 2014
+        .. codeauthor:: Added by Jason Leung, September 2014
         '''
         try:
             third = self.third
@@ -2858,7 +2858,7 @@ class Chord(note.NotRest):
         >>> a.isSusFour()
         True
 
-        Added by Jason Leung, September 2014
+        .. codeauthor:: Added by Jason Leung, September 2014
         '''
         try:
             root = self.bass()
@@ -2889,7 +2889,7 @@ class Chord(note.NotRest):
         >>> a.isAddNine()
         True
 
-        Added by Jason Leung, September 2014
+        .. codeauthor:: Added by Jason Leung, September 2014
         '''
         try:
             third = self.third
