@@ -590,6 +590,66 @@ class FiguredBassLine(object):
                            inTime = self.inTime, overlayedParts = self._overlayedParts[0:-1],
                            paddingLeft = self._paddingLeft, bassLine = bassLine)
 
+    def proofreadSegments(self):
+        '''
+        After creating the :class:`~music21.figuredBass.realizer.FiguredBassLine`, this method can be called to proofreads
+        the segment list for mislabeled chords. Checks whether the realized chord is a known type:
+
+        Triads: major, minor, diminished, augmented
+        Seventh chords (complete or incomplete): dominant, diminished, half-diminished, major, minor
+        Other chords: augmented sixth, sus4, add9
+
+        If the chord is not recognized, it is presented to the user for revision.
+
+        .. codeauthor:: Added by Jason Leung, October 2014
+        '''
+        (unused_bassLine, segmentList) = self.retrieveSegments()
+
+        for segmentIndex in range(len(segmentList)):
+            if segmentList[segmentIndex].allPitchesAboveBass is not None:
+                chordToCheck = segmentList[segmentIndex].segmentChord
+
+                if chordToCheck.isTriad():
+                    editMode = (chordToCheck.quality == 'other')
+                elif chordToCheck.isSeventh():
+                    isDominantSeventh = chordToCheck.isDominantSeventh()
+                    isDiminishedSeventh = chordToCheck.isDiminishedSeventh()
+                    #isFalseDiminishedSeveth = chordToCheck.isFalseDiminishedSeveth() # Not sure what this is
+                    isHalfDiminishedSeventh = chordToCheck.isHalfDiminishedSeventh()
+                    isMajorSeventh = chordToCheck.isMajorSeventh()
+                    isMinorSeventh = chordToCheck.isMinorSeventh()
+                    editMode = not (isDominantSeventh or isDiminishedSeventh or isHalfDiminishedSeventh or isMajorSeventh or isMinorSeventh)
+                elif chordToCheck.isIncompleteSeventh():
+                    isIncompleteDominantSeventh = chordToCheck.isIncompleteDominantSeventh()
+                    isIncompleteDiminishedSeventh = chordToCheck.isIncompleteDiminishedSeventh()
+                    # isIncompleteHalfDiminishedSeventh = chordToCheck.isIncompleteHalfDiminishedSeventh() # Is the same as an incomplete minor 7th
+                    isIncompleteMajorSeventh = chordToCheck.isIncompleteMajorSeventh()
+                    isIncompleteMinorSeventh = chordToCheck.isIncompleteMinorSeventh()
+                    editMode = not (isIncompleteDominantSeventh or isIncompleteDiminishedSeventh or isIncompleteMajorSeventh or isIncompleteMinorSeventh)
+                else:
+                    editMode = not (chordToCheck.isAugmentedSixth() or chordToCheck.isSusFour() or chordToCheck.isAddNine())
+                
+                if editMode:
+                    print("Unknown chord: " + ", ".join(str(p) for p in segmentList[segmentIndex].pitchNamesInChord) + " corresponding to the bass note " + segmentList[segmentIndex].bassNote.nameWithOctave\
+                          + " with the figure " + "".join(str(p) for p in segmentList[segmentIndex].bassNote.notationString))
+                    reviseChord = raw_input("Revise chord? (y/N) ")
+                    if reviseChord in ['y', 'Y', 'yes', 'Yes']:
+                        while reviseChord in ['y', 'Y', 'yes', 'Yes']:
+                            newNotationString = raw_input("Input new figure: ")
+                            replacementSegment = segment.OverlayedSegment(segmentList[segmentIndex].bassNote, newNotationString, self._fbScale)#, fbRules, numParts, maxPitch)
+                            print("New chord: " + ", ".join(str(p) for p in replacementSegment.pitchNamesInChord))
+                            reviseChord = raw_input("Revise chord? (y/N) ")
+                        replacementSegment.quarterLength = segmentList[segmentIndex].quarterLength
+                        segmentList[segmentIndex] = replacementSegment
+                        segmentList[segmentIndex].bassNote.notationString = newNotationString
+                        self._fbList[segmentIndex] = (segmentList[segmentIndex].bassNote, newNotationString)
+                        print("Chord revised as: " + ", ".join(str(p) for p in replacementSegment.pitchNamesInChord))
+                    else:
+                        print("No revision made to this chord")
+                    print("----------")
+
+        print("Proofreading complete")
+
     def generateRandomRealization(self):         
         '''
         Generates a random realization of a figured bass as a :class:`~music21.stream.Score`, 
