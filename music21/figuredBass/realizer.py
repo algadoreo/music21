@@ -604,49 +604,103 @@ class FiguredBassLine(object):
         .. codeauthor:: Added by Jason Leung, October 2014
         '''
         (unused_bassLine, segmentList) = self.retrieveSegments()
+        keySigAccidentalDict = dict(A=0, B=0, C=0, D=0, E=0, F=0, G=0)
+        for p in self.inKey.alteredPitches:
+            keySigAccidentalDict[p.step] = p.alter
+        beatsToAMeasure = self.inTime.numerator
+        previousMeasure = 0
 
-        for segmentIndex in range(len(segmentList)):
-            if segmentList[segmentIndex].allPitchesAboveBass is not None:
-                chordToCheck = segmentList[segmentIndex].segmentChord
+        ''' There are two lists to iterate over simultaneously, segmentList and self._fbList, whose indices don't line up.
+        This means that we need two separate indices; since self._fbList is the longer list, we will use its index as the
+        default iterator, updating its counterpart only when the bass notes line up. '''
+        segmentIndex = 0
+        for fbIndex in range(len(self._fbList)):
+            # Just in case there are extraneous bass notes after the last chord, e.g., a bass arpeggio
+            if fbIndex > len(segmentList):
+                break
 
-                if chordToCheck.isTriad():
-                    editMode = (chordToCheck.quality == 'other')
-                elif chordToCheck.isSeventh():
-                    isDominantSeventh = chordToCheck.isDominantSeventh()
-                    isDiminishedSeventh = chordToCheck.isDiminishedSeventh()
-                    #isFalseDiminishedSeveth = chordToCheck.isFalseDiminishedSeveth() # Not sure what this is
-                    isHalfDiminishedSeventh = chordToCheck.isHalfDiminishedSeventh()
-                    isMajorSeventh = chordToCheck.isMajorSeventh()
-                    isMinorSeventh = chordToCheck.isMinorSeventh()
-                    editMode = not (isDominantSeventh or isDiminishedSeventh or isHalfDiminishedSeventh or isMajorSeventh or isMinorSeventh)
-                elif chordToCheck.isIncompleteSeventh():
-                    isIncompleteDominantSeventh = chordToCheck.isIncompleteDominantSeventh()
-                    isIncompleteDiminishedSeventh = chordToCheck.isIncompleteDiminishedSeventh()
-                    # isIncompleteHalfDiminishedSeventh = chordToCheck.isIncompleteHalfDiminishedSeventh() # Is the same as an incomplete minor 7th
-                    isIncompleteMajorSeventh = chordToCheck.isIncompleteMajorSeventh()
-                    isIncompleteMinorSeventh = chordToCheck.isIncompleteMinorSeventh()
-                    editMode = not (isIncompleteDominantSeventh or isIncompleteDiminishedSeventh or isIncompleteMajorSeventh or isIncompleteMinorSeventh)
-                else:
-                    editMode = not (chordToCheck.isAugmentedSixth() or chordToCheck.isSusFour() or chordToCheck.isAddNine())
-                
-                if editMode:
-                    print("Unknown chord: " + ", ".join(str(p) for p in segmentList[segmentIndex].pitchNamesInChord) + " corresponding to the bass note " + segmentList[segmentIndex].bassNote.nameWithOctave\
-                          + " with the figure " + "".join(str(p) for p in segmentList[segmentIndex].bassNote.notationString))
-                    reviseChord = raw_input("Revise chord? (y/N) ")
-                    if reviseChord in ['y', 'Y', 'yes', 'Yes']:
-                        while reviseChord in ['y', 'Y', 'yes', 'Yes']:
-                            newNotationString = raw_input("Input new figure: ")
-                            replacementSegment = segment.OverlayedSegment(segmentList[segmentIndex].bassNote, newNotationString, self._fbScale)#, fbRules, numParts, maxPitch)
-                            print("New chord: " + ", ".join(str(p) for p in replacementSegment.pitchNamesInChord))
-                            reviseChord = raw_input("Revise chord? (y/N) ")
-                        replacementSegment.quarterLength = segmentList[segmentIndex].quarterLength
-                        segmentList[segmentIndex] = replacementSegment
-                        segmentList[segmentIndex].bassNote.notationString = newNotationString
-                        self._fbList[segmentIndex] = (segmentList[segmentIndex].bassNote, newNotationString)
-                        print("Chord revised as: " + ", ".join(str(p) for p in replacementSegment.pitchNamesInChord))
+            # Check to see if the two lists align
+            if segmentList[segmentIndex].bassNote.offset == self._fbList[fbIndex][0].offset:
+                currentMeasure = segmentList[segmentIndex].bassNote.offset//beatsToAMeasure + 1
+                currentBeat = segmentList[segmentIndex].bassNote.beat
+
+                ''' Dictionary of accidentals. Reset after each measure '''
+                if currentMeasure != previousMeasure:
+                    accidentalDict = copy.deepcopy(keySigAccidentalDict)
+
+                # Checks only work if the segment is not a rest
+                if segmentList[segmentIndex].allPitchesAboveBass is not None:
+                    chordToCheck = copy.deepcopy(segmentList[segmentIndex].segmentChord)
+                    chordToCheck.removeRedundantPitchNames()
+                    ''' Chord checks '''
+                    if chordToCheck.isTriad():
+                        editMode = (chordToCheck.quality == 'other')
+                    elif chordToCheck.isSeventh():
+                        isDominantSeventh = chordToCheck.isDominantSeventh()
+                        isDiminishedSeventh = chordToCheck.isDiminishedSeventh()
+                        #isFalseDiminishedSeveth = chordToCheck.isFalseDiminishedSeveth() # Not sure what this is
+                        isHalfDiminishedSeventh = chordToCheck.isHalfDiminishedSeventh()
+                        isMajorSeventh = chordToCheck.isMajorSeventh()
+                        isMinorSeventh = chordToCheck.isMinorSeventh()
+                        editMode = not (isDominantSeventh or isDiminishedSeventh or isHalfDiminishedSeventh or isMajorSeventh or isMinorSeventh)
+                    elif chordToCheck.isIncompleteSeventh():
+                        isIncompleteDominantSeventh = chordToCheck.isIncompleteDominantSeventh()
+                        isIncompleteDiminishedSeventh = chordToCheck.isIncompleteDiminishedSeventh()
+                        # isIncompleteHalfDiminishedSeventh = chordToCheck.isIncompleteHalfDiminishedSeventh() # Is the same as an incomplete minor 7th
+                        isIncompleteMajorSeventh = chordToCheck.isIncompleteMajorSeventh()
+                        isIncompleteMinorSeventh = chordToCheck.isIncompleteMinorSeventh()
+                        editMode = not (isIncompleteDominantSeventh or isIncompleteDiminishedSeventh or isIncompleteMajorSeventh or isIncompleteMinorSeventh)
                     else:
-                        print("No revision made to this chord")
-                    print("----------")
+                        editMode = not (chordToCheck.isAugmentedSixth() or chordToCheck.isSusFour() or chordToCheck.isAddNine())
+                    
+                    if editMode:
+                        print("Unknown chord in measure " + str(currentMeasure) + ", beat " + str(currentBeat) + ":")
+                        print(", ".join(str(p) for p in segmentList[segmentIndex].pitchNamesInChord)\
+                              + " corresponding to the figure " + "".join(str(p) for p in segmentList[segmentIndex].bassNote.notationString))
+                        reviseChord = raw_input("Revise chord? (y/N) ")
+                        if reviseChord in ['y', 'Y', 'yes', 'Yes']:
+                            while reviseChord in ['y', 'Y', 'yes', 'Yes']:
+                                newNotationString = raw_input("Input new figure: ")
+                                replacementSegment = segment.OverlayedSegment(segmentList[segmentIndex].bassNote, newNotationString, self._fbScale)#, fbRules, numParts, maxPitch)
+                                print("New chord: " + ", ".join(str(p) for p in replacementSegment.pitchNamesInChord))
+                                reviseChord = raw_input("Revise chord? (y/N) ")
+                            replacementSegment.quarterLength = segmentList[segmentIndex].quarterLength
+                            segmentList[segmentIndex] = replacementSegment
+                            segmentList[segmentIndex].bassNote.notationString = newNotationString
+                            self._fbList[fbIndex] = (replacementSegment.bassNote, newNotationString)
+                            print("Chord revised as: " + ", ".join(str(p) for p in replacementSegment.pitchNamesInChord))
+
+                            chordToCheck = copy.deepcopy(replacementSegment.segmentChord)
+                            chordToCheck.removeRedundantPitchNames()
+                        else:
+                            print("No revision made to this chord")
+                        print("----------")
+
+                    ''' Accidental check. Can skip bass note – can safely assume it is marked correctly '''
+                    for chordNote in list(chordToCheck.pitches)[1:]:
+                        if chordNote.alter != keySigAccidentalDict[chordNote.step]:
+                            accidentalDict[chordNote.step] = chordNote.alter
+                        elif chordNote.alter != accidentalDict[chordNote.step]:
+                            print("Missing accidental in measure " + str(currentMeasure) + ", beat " + str(currentBeat) + "?")
+                            print("Current notes in chord: " + ", ".join(p.name for p in chordToCheck))
+                            reviseAccidental = raw_input("Should the " + chordNote.name + " be " + pitch.Accidental(accidentalDict[chordNote.step]).name + "? (y/N) ")
+                            if reviseAccidental in ['y', 'Y', 'yes', 'Yes']:
+                                while reviseAccidental in ['y', 'Y', 'yes', 'Yes']:
+                                    newNotationString = raw_input("Input new figure: ")
+                                    replacementSegment = segment.OverlayedSegment(segmentList[segmentIndex].bassNote, newNotationString, self._fbScale)#, fbRules, numParts, maxPitch)
+                                    print("New chord: " + ", ".join(str(p) for p in replacementSegment.pitchNamesInChord))
+                                    reviseAccidental = raw_input("Revise chord? (y/N) ")
+                                replacementSegment.quarterLength = segmentList[segmentIndex].quarterLength
+                                segmentList[segmentIndex] = replacementSegment
+                                segmentList[segmentIndex].bassNote.notationString = newNotationString
+                                self._fbList[fbIndex] = (replacementSegment.bassNote, newNotationString)
+                                print("Chord revised as: " + ", ".join(str(p) for p in replacementSegment.pitchNamesInChord))
+                            else:
+                                print("No revision made to this chord")
+                            print("----------")
+
+                previousMeasure = currentMeasure
+                segmentIndex += 1
 
         print("Proofreading complete")
 
