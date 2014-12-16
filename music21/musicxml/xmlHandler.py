@@ -356,13 +356,13 @@ class Handler(xml.sax.ContentHandler):
             self._mxObjs['figured-bass'].figuredBassList.append(self._mxObjs['figure'])
 
         elif name == 'prefix':
-            self._mxObjs['figure'].figurePrefix = self._currentTag.charData
+            self._mxObjs['figure'].prefix = self._currentTag.charData
 
         elif name == 'figure-number':
             self._mxObjs['figure'].figureNumber = self._currentTag.charData
 
         elif name == 'suffix':
-            self._mxObjs['figure'].figureSuffix = self._currentTag.charData
+            self._mxObjs['figure'].suffix = self._currentTag.charData
 
         elif name == 'extend':
             # The 'extend' tag can be found in a variety of contexts: lyrics, figured bass, etc.

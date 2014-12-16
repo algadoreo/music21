@@ -576,10 +576,10 @@ def mxToLyric(mxLyric, inputM21=None, figuredBass=False):
         l.syllabic = mxLyric.get('syllabic')
     else:
         #!---------- Added: inputting figured bass as lyrics ----------!
-        prefix = mxLyric.figurePrefix
-        figure = mxLyric.figureNumber
-        suffix = mxLyric.figureSuffix
-
+        prefix = mxLyric.get('prefix')
+        figure = mxLyric.get('figure-number')
+        suffix = mxLyric.get('suffix')
+        
         # Translate to strings that music21 understands
         if (prefix or suffix) == 'sharp':
             prefix = '#'
@@ -2423,17 +2423,14 @@ def mxToMeasure(mxMeasure, spannerBundle=None, inputM21=None, lastMeasureInfo=No
                     if addFiguredBass:
                         currentLyricNumber = 1
                         for mxLyric in mxFiguredBass.figuredBassList:
-                            lyricObj = mxToLyric(mxLyric, figuredBass=True)
-                            lyricObj.number = currentLyricNumber
-                            if lyricObj.text is not '':
-                                n.lyrics.append(lyricObj)
+                            if mxLyric.figureNumber is not None or mxLyric.prefix is not None:
+                                lyricObj = mxToLyric(mxLyric, figuredBass=True)
                             else:
-                                #!---------- An empty string indicates an extension; look at previous figure ----------!
                                 lyricObj = mxToLyric(prevFigure.figuredBassList[currentLyricNumber-1], figuredBass=True)
-                                lyricObj.number = currentLyricNumber
                                 lyricObj.syllabic = 'end'
-                                n.lyrics.append(lyricObj)
                                 mxFiguredBass.figuredBassList[currentLyricNumber-1].figureNumber = lyricObj.text # also enter it into the actual figure so it can be re-used
+                            lyricObj.number = currentLyricNumber
+                            n.lyrics.append(lyricObj)
                             currentLyricNumber += 1
                         #!---------- Store the figure in a case of extensions ----------!
                         prevFigure = mxFiguredBass

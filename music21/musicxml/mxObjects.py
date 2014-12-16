@@ -2765,20 +2765,15 @@ class Lyric(MusicXMLElement):
         c.append(('text', self.filterLyric(self.text)))
         return c
 
-class FiguredBass(MusicXMLElement):
+class FiguredBass(MusicXMLElementList):
     def __init__(self):
-        MusicXMLElement.__init__(self)
+        MusicXMLElementList.__init__(self)
         self._tag = 'figured-bass'
-
-        #self.figureObj = None
 
         self.figuredBassList = []
 
-        #self._crossReference['figureObj'] = ['figure']
-
     def _getComponents(self):
         c = []
-        #c.append(self.figureObj)
         c = c + self.figuredBassList
         return c
 
@@ -2786,17 +2781,16 @@ class Figure(MusicXMLElement):
     def __init__(self):
         MusicXMLElement.__init__(self)
         self._tag = 'figure'
-        #self._attr['number'] = None
-        self.figurePrefix = None
+        self.prefix = None
         self.figureNumber = None
-        self.figureSuffix = None
+        self.suffix = None
         self.extendObj = None
 
     def _getComponents(self):
         c = []
-        c.append(('prefix', self.figurePrefix))
+        c.append(('prefix', self.prefix))
         c.append(('figure-number', self.figureNumber))
-        c.append(('suffix', self.figureSuffix))
+        c.append(('suffix', self.suffix))
         c.append(('extend', self.extendObj))
         return c
 
