@@ -233,6 +233,7 @@ class TagLib(object):
         ('prefix', True),
         ('figure-number', True),
         ('suffix', True),
+        ('extend', True, Extend),
         ('trill-mark', False, TrillMark), 
         ('mordent', False, Mordent), 
         ('inverted-mordent', False, InvertedMordent), 
@@ -2789,14 +2790,22 @@ class Figure(MusicXMLElement):
         self.figurePrefix = None
         self.figureNumber = None
         self.figureSuffix = None
+        self.extendObj = None
 
     def _getComponents(self):
         c = []
         c.append(('prefix', self.figurePrefix))
         c.append(('figure-number', self.figureNumber))
         c.append(('suffix', self.figureSuffix))
+        c.append(('extend', self.extendObj))
         return c
 
+class Extend(MusicXMLElement):
+    def __init__(self):
+        MusicXMLElement.__init__(self)
+        self._tag = 'extend'
+        # attributes
+        self._attr['type'] = None
 
 class Pitch(MusicXMLElement):
     def __init__(self):

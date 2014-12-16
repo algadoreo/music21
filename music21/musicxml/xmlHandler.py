@@ -364,6 +364,11 @@ class Handler(xml.sax.ContentHandler):
         elif name == 'suffix':
             self._mxObjs['figure'].figureSuffix = self._currentTag.charData
 
+        elif name == 'extend':
+            # The 'extend' tag can be found in a variety of contexts: lyrics, figured bass, etc.
+            if self._mxObjs['figure'] is not None:
+                self._mxObjs['figure'].extendObj = self._mxObjs['extend']
+
         elif name == 'trill-mark': 
             self._mxObjs['ornaments'].append(self._mxObjs['trill-mark'])
 
