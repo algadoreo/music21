@@ -704,6 +704,60 @@ class FiguredBassLine(object):
 
         print("Proofreading complete")
 
+    def createStringRepresentation(self):
+        '''
+        Creates a string representation of the current figured bass line. The string is comprised of all the (relevant) bass notes, each followed immediately
+        by its full (i.e. longhand) figure. This string is to be used as a hash key for efficient table lookup of appropriate realizations.
+
+        Passing notes and other non-chord tones are to be marked with the lyric attribute syllabic set to 'end'. Such figures will be ignored when iterating
+        over the bass notes.
+
+        N.B.: The convention for accidentals is that IT MUST FOLLOW THE NUMBER it is attached to. This is to avoid having duplicate keys where the only
+        difference is the trivial positioning of an accidental.
+
+
+        >>> from music21 import note
+        >>> from music21 import key
+        >>> from music21 import meter
+        >>> from music21 import figuredBass
+        >>> from music21.figuredBass import realizer
+        >>> fbLine = realizer.FiguredBassLine(key.Key('C'), meter.TimeSignature('3/4'))
+        >>> fbLine.addElement(note.Note('C3'), "5,3")
+        >>> fbLine.addElement(note.Note('G3'))
+        >>> fbLine.addElement(note.Note('C3'))
+        >>> fbString = fbLine.createStringRepresentation()
+        >>> fbString
+        C53G53C53
+
+        .. codeauthor:: Added by Jason Leung, November 2014
+        '''
+        bassLine = self.generateBassLine()
+        bassLine = bassLine.flat.notes
+        # finalList = []
+        finalListString = ''
+        for bassNote in bassLine:
+            lyricList = []
+            if len(bassNote.lyrics) == 0:
+                lyricList = [5, 3]
+                # finalList.append(''.join(str(x) for x in ([bassNote.name,] + lyricList)))
+                finalListString += bassNote.name + ''.join(str(x) for x in lyricList)
+            else:
+                for lyric in bassNote.lyrics:
+                    if lyric.syllabic != 'end':
+                        lyricList.append(lyric.text)
+                if len(lyricList) > 0:
+                    fullFigureList = []
+                    nt = notation.Notation(','.join(str(x) for x in lyricList))
+                    
+                    for nx in nt.figures:
+                        fullFigureList.append(nx.number)
+                        if nx.modifierString is not None:
+                            fullFigureList.append(nx.modifierString)
+                    # finalList.append(''.join(str(x) for x in ([bassNote.name,] + fullFigureList)))
+                    finalListString += bassNote.name + ''.join(str(x) for x in fullFigureList)
+        # return finalList
+        return finalListString
+
     def generateRandomRealization(self):         
         '''
         Generates a random realization of a figured bass as a :class:`~music21.stream.Score`, 
