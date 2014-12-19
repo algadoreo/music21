@@ -55,6 +55,7 @@ from music21 import meter
 from music21 import note
 from music21 import pitch
 from music21 import stream
+from music21 import tinyNotation
 from music21.figuredBass import checker
 from music21.figuredBass import notation
 from music21.figuredBass import realizerScale
@@ -704,7 +705,7 @@ class FiguredBassLine(object):
 
         print("Proofreading complete")
 
-    def createStringRepresentation(self):
+    def createStringRepresentation(self, bassLine = None):
         '''
         Creates a string representation of the current figured bass line. The string is comprised of all the (relevant) bass notes, each followed immediately
         by its full (i.e. longhand) figure. This string is to be used as a hash key for efficient table lookup of appropriate realizations.
@@ -731,7 +732,8 @@ class FiguredBassLine(object):
 
         .. codeauthor:: Added by Jason Leung, November 2014
         '''
-        bassLine = self.generateBassLine()
+        if bassLine is None:
+            bassLine = self.generateBassLine()
         bassLine = bassLine.flat.notes
         # finalList = []
         finalListString = ''
@@ -757,6 +759,70 @@ class FiguredBassLine(object):
                     finalListString += bassNote.name + ''.join(str(x) for x in fullFigureList)
         # return finalList
         return finalListString
+
+    def extractRealization(self):
+        '''
+        Implements a table-lookup method of figured bass realization. ‘Standard’ realizations are stored in a dictionary, and (a string representation of) the
+        current figured bass line is used as a hash key.
+
+
+        >>> from music21 import note
+        >>> from music21 import key
+        >>> from music21 import meter
+        >>> from music21 import figuredBass
+        >>> from music21.figuredBass import realizer
+        >>> fbLine = realizer.FiguredBassLine()
+        >>> fbLine.addElement(note.Note('G3'))
+        >>> fbLine.addElement(note.Note('C3'))
+        >>> fbRealization = fbLine.extractRealization(key.Key('C'), meter.TimeSignature('2/4'))
+        >>> fbRealization.flat.show('text')
+        {0.0} <music21.clef.TrebleClef>
+        {0.0} <music21.clef.BassClef>
+        {0.0} <music21.key.Key of C major>
+        {0.0} <music21.key.Key of C major>
+        {0.0} <music21.meter.TimeSignature 2/4>
+        {0.0} <music21.meter.TimeSignature 2/4>
+        {0.0} <music21.note.Note B>
+        {0.0} <music21.note.Note G>
+        {1.0} <music21.note.Note C>
+        {1.0} <music21.note.Note C>
+        {2.0} <music21.bar.Barline style=final>
+        {2.0} <music21.bar.Barline style=final>
+
+        .. codeauthor:: Added by Jason Leung, December 2014
+        '''
+        realizations = { 'G53C53' : "b4 c'4",
+                        }
+
+        bassLine = self.generateBassLine()
+        fbString = self.createStringRepresentation(bassLine)
+        try:
+            # extractedString = realizations[fbString]
+            extractedStream = tinyNotation.TinyNotationStream(realizations[fbString])
+        except KeyError:
+            print('Not a known progression; returning None object')
+            return None
+        bassLine = bassLine.flat.notesAndRests
+
+        sol = stream.Score()
+        leftHand = stream.Part()
+        leftHand.append([self.inKey, self.inTime])
+        for n in bassLine:
+            leftHand.append(n)
+
+        rightHand = stream.Part()
+        rightHand.append([self.inKey, self.inTime])
+        sol.insert(0.0, rightHand)
+        for nt in extractedStream:
+            rightHand.append(nt)
+        rightHand.insert(0.0, clef.TrebleClef())
+        rightHand.makeNotation(inPlace=True, cautionaryNotImmediateRepeat=False)
+
+        leftHand.insert(0.0, clef.BassClef())
+        leftHand.makeNotation(inPlace=True, cautionaryNotImmediateRepeat=False)
+
+        sol.insert(0.0, leftHand)
+        return sol
 
     def generateRandomRealization(self):         
         '''
