@@ -804,8 +804,7 @@ class FiguredBassLine(object):
         try:
             voiceList = realizations[fbString]
         except KeyError:
-            print('Not a known progression; returning None object')
-            return None
+            raise FiguredBassLineException("Progression not found in dictionary; consider adding a new entry to it.")
         bassLine = bassLine.flat.notesAndRests
 
         sol = stream.Score()
