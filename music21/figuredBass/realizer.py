@@ -772,7 +772,7 @@ class FiguredBassLine(object):
         >>> from music21 import figuredBass
         >>> from music21.figuredBass import realizer
         >>> fbLine = realizer.FiguredBassLine()
-        >>> fbLine.addElement(note.Note('G3'))
+        >>> fbLine.addElement(note.Note('G3'), "7")
         >>> fbLine.addElement(note.Note('C3'))
         >>> fbRealization = fbLine.extractRealization(key.Key('C'), meter.TimeSignature('2/4'))
         >>> fbRealization.flat.show('text')
@@ -783,7 +783,11 @@ class FiguredBassLine(object):
         {0.0} <music21.meter.TimeSignature 2/4>
         {0.0} <music21.meter.TimeSignature 2/4>
         {0.0} <music21.note.Note B>
+        {0.0} <music21.note.Note F>
+        {0.0} <music21.note.Note D>
         {0.0} <music21.note.Note G>
+        {1.0} <music21.note.Note C>
+        {1.0} <music21.note.Note E>
         {1.0} <music21.note.Note C>
         {1.0} <music21.note.Note C>
         {2.0} <music21.bar.Barline style=final>
@@ -791,14 +795,14 @@ class FiguredBassLine(object):
 
         .. codeauthor:: Added by Jason Leung, December 2014
         '''
-        realizations = { 'G53C53' : "b4 c'4",
+        realizations = { 'G53C53' : ["b4 c'4", "g4 g4", "d4 e4"],
+                         'G753C53': ["b4 c'4", "f4 e4", "d4 c4"],
                         }
 
         bassLine = self.generateBassLine()
         fbString = self.createStringRepresentation(bassLine)
         try:
-            # extractedString = realizations[fbString]
-            extractedStream = tinyNotation.TinyNotationStream(realizations[fbString])
+            voiceList = realizations[fbString]
         except KeyError:
             print('Not a known progression; returning None object')
             return None
@@ -813,8 +817,14 @@ class FiguredBassLine(object):
         rightHand = stream.Part()
         rightHand.append([self.inKey, self.inTime])
         sol.insert(0.0, rightHand)
-        for nt in extractedStream:
-            rightHand.append(nt)
+        
+        for noteString in voiceList:
+            voice = stream.Voice()
+            rightHand.insert(0.0, voice)
+            extractedStream = tinyNotation.TinyNotationStream(noteString)
+            for nt in extractedStream:
+                voice.append(nt)
+
         rightHand.insert(0.0, clef.TrebleClef())
         rightHand.makeNotation(inPlace=True, cautionaryNotImmediateRepeat=False)
 
