@@ -17,6 +17,14 @@ import sys
 import unittest
 import textwrap
 
+
+try:
+    reload  # python2
+except NameError:
+    try:
+        from importlib import reload # Python 3.4
+    except ImportError:
+        from imp import reload
 #try:
 #    import readline
 #except ImportError:

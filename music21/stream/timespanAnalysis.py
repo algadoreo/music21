@@ -17,11 +17,11 @@ Tools for performing voice-leading analysis with timespans.
 import collections
 import unittest
 
-from music21 import base
-from music21 import common
+#from music21 import base
+#from music21 import common
 from music21 import chord
 from music21 import environment
-from music21 import key
+#from music21 import key
 from music21 import pitch
 
 environLocal = environment.Environment("stream.timespanAnalysis")
@@ -137,7 +137,7 @@ class Verticality(object):
     ::
 
         >>> score = corpus.parse('bwv66.6')
-        >>> tree = stream.timespans.streamToTimespanCollection(score)
+        >>> tree = stream.timespans.streamToTimespanCollection(score, flatten=True, classList=(note.Note, chord.Chord))
 
 
     Find the verticality at offset 6.5, or beat 2.5 of measure 2 (there's a one
@@ -273,7 +273,7 @@ class Verticality(object):
         ::
 
             >>> score = corpus.parse('bwv66.6')
-            >>> tree = stream.timespans.streamToTimespanCollection(score)
+            >>> tree = stream.timespans.streamToTimespanCollection(score, flatten=True, classList=(note.Note, chord.Chord))
             >>> verticality = tree.getVerticalityAt(1.0)
             >>> verticality
             <Verticality 1.0 {F#3 C#4 F#4 A4}>
@@ -308,7 +308,7 @@ class Verticality(object):
         ::
 
             >>> score = corpus.parse('bwv66.6')
-            >>> tree = stream.timespans.streamToTimespanCollection(score)
+            >>> tree = stream.timespans.streamToTimespanCollection(score, flatten=True, classList=(note.Note, chord.Chord))
             >>> verticality = tree.getVerticalityAt(1.0)
             >>> verticality.beatStrength
             1.0
@@ -343,7 +343,7 @@ class Verticality(object):
         ::
 
                 >>> score = corpus.parse('bwv66.6')
-                >>> tree = stream.timespans.streamToTimespanCollection(score)
+                >>> tree = stream.timespans.streamToTimespanCollection(score, flatten=True, classList=(note.Note, chord.Chord))
                 >>> verticalities = list(tree.iterateVerticalities())
                 >>> for verticality in verticalities[:10]:
                 ...     print("%r %r" % (verticality, verticality.isConsonant))
@@ -370,7 +370,7 @@ class Verticality(object):
         ::
 
             >>> score = corpus.parse('bwv66.6')
-            >>> tree = stream.timespans.streamToTimespanCollection(score)
+            >>> tree = stream.timespans.streamToTimespanCollection(score, flatten=True, classList=(note.Note, chord.Chord))
             >>> verticality = tree.getVerticalityAt(7.0)
             >>> verticality.measureNumber
             2
@@ -386,7 +386,7 @@ class Verticality(object):
         ::
 
             >>> score = corpus.parse('bwv66.6')
-            >>> tree = stream.timespans.streamToTimespanCollection(score)
+            >>> tree = stream.timespans.streamToTimespanCollection(score, flatten=True, classList=(note.Note, chord.Chord))
             >>> verticality = tree.getVerticalityAt(1.0)
             >>> verticality.nextStartOffset
             2.0
@@ -406,7 +406,7 @@ class Verticality(object):
         ::
 
             >>> score = corpus.parse('bwv66.6')
-            >>> tree = stream.timespans.streamToTimespanCollection(score)
+            >>> tree = stream.timespans.streamToTimespanCollection(score, flatten=True, classList=(note.Note, chord.Chord))
             >>> verticality = tree.getVerticalityAt(1.0)
             >>> print(verticality)
             <Verticality 1.0 {F#3 C#4 F#4 A4}>
@@ -446,7 +446,7 @@ class Verticality(object):
         ::
 
             >>> score = corpus.parse('bwv66.6')
-            >>> tree = stream.timespans.streamToTimespanCollection(score)
+            >>> tree = stream.timespans.streamToTimespanCollection(score, flatten=True, classList=(note.Note, chord.Chord))
             >>> verticality = tree.getVerticalityAt(0.5)
             >>> verticality.overlapTimespans
             (<ElementTimespan (0.0 to 1.0) <music21.note.Note E>>,)
@@ -462,7 +462,7 @@ class Verticality(object):
         ::
 
             >>> score = corpus.parse('bwv66.6')
-            >>> tree = stream.timespans.streamToTimespanCollection(score)
+            >>> tree = stream.timespans.streamToTimespanCollection(score, flatten=True, classList=(note.Note, chord.Chord))
             >>> verticality = tree.getVerticalityAt(1.0)
             >>> for pitch in sorted(verticality.pitchSet):
             ...     pitch
@@ -495,7 +495,7 @@ class Verticality(object):
         ::
 
             >>> score = corpus.parse('bwv66.6')
-            >>> tree = stream.timespans.streamToTimespanCollection(score)
+            >>> tree = stream.timespans.streamToTimespanCollection(score, flatten=True, classList=(note.Note, chord.Chord))
             >>> verticality = tree.getVerticalityAt(1.0)
             >>> for pitchClass in sorted(verticality.pitchClassSet):
             ...     pitchClass
@@ -519,7 +519,7 @@ class Verticality(object):
         ::
 
             >>> score = corpus.parse('bwv66.6')
-            >>> tree = stream.timespans.streamToTimespanCollection(score)
+            >>> tree = stream.timespans.streamToTimespanCollection(score, flatten=True, classList=(note.Note, chord.Chord))
             >>> verticality = tree.getVerticalityAt(1.0)
             >>> print(verticality)
             <Verticality 1.0 {F#3 C#4 F#4 A4}>
@@ -570,7 +570,7 @@ class Verticality(object):
         ::
 
             >>> score = corpus.parse('bwv66.6')
-            >>> tree = stream.timespans.streamToTimespanCollection(score)
+            >>> tree = stream.timespans.streamToTimespanCollection(score, flatten=True, classList=(note.Note, chord.Chord))
             >>> verticality = tree.getVerticalityAt(1.0)
             >>> verticality.startOffset
             1.0
@@ -586,7 +586,7 @@ class Verticality(object):
         ::
 
             >>> score = corpus.parse('bwv66.6')
-            >>> tree = stream.timespans.streamToTimespanCollection(score)
+            >>> tree = stream.timespans.streamToTimespanCollection(score, flatten=True, classList=(note.Note, chord.Chord))
             >>> verticality = tree.getVerticalityAt(1.0)
             >>> for timespan in verticality.startTimespans:
             ...     timespan
@@ -607,7 +607,7 @@ class Verticality(object):
         ::
 
             >>> score = corpus.parse('bwv66.6')
-            >>> tree = stream.timespans.streamToTimespanCollection(score)
+            >>> tree = stream.timespans.streamToTimespanCollection(score, flatten=True, classList=(note.Note, chord.Chord))
             >>> verticality = tree.getVerticalityAt(1.0)
             >>> for timespan in verticality.stopTimespans:
             ...     timespan
@@ -628,23 +628,23 @@ class Verticality(object):
                                    includeNoMotion=False, returnObjects=True, partPairNumbers=None):
         '''
         >>> c = corpus.parse('luca/gloria').measures(1,8)
-        >>> tsCol = stream.timespans.streamToTimespanCollection(c)
+        >>> tsCol = stream.timespans.streamToTimespanCollection(c, flatten=True, classList=(note.Note, chord.Chord))
         >>> verticality22 = tsCol.getVerticalityAt(22.0)
         
         >>> from pprint import pprint as pp
         >>> for vlq in verticality22.getAllVoiceLeadingQuartets():
         ...     pp(vlq)
-        <music21.voiceLeading.VoiceLeadingQuartet v1n1=<music21.note.Note E> , v1n2=<music21.note.Note F>, v2n1=<music21.note.Note G>, v2n2=<music21.note.Note C>  
-        <music21.voiceLeading.VoiceLeadingQuartet v1n1=<music21.note.Note E> , v1n2=<music21.note.Note F>, v2n1=<music21.note.Note A>, v2n2=<music21.note.Note A>  
-        <music21.voiceLeading.VoiceLeadingQuartet v1n1=<music21.note.Note G> , v1n2=<music21.note.Note C>, v2n1=<music21.note.Note A>, v2n2=<music21.note.Note A>  
+        <music21.voiceLeading.VoiceLeadingQuartet v1n1=<music21.note.Note E> , v1n2=<music21.note.Note F>, v2n1=<music21.note.Note G>, v2n2=<music21.note.Note C> >  
+        <music21.voiceLeading.VoiceLeadingQuartet v1n1=<music21.note.Note E> , v1n2=<music21.note.Note F>, v2n1=<music21.note.Note A>, v2n2=<music21.note.Note A> > 
+        <music21.voiceLeading.VoiceLeadingQuartet v1n1=<music21.note.Note G> , v1n2=<music21.note.Note C>, v2n1=<music21.note.Note A>, v2n2=<music21.note.Note A> >
 
         >>> for vlq in verticality22.getAllVoiceLeadingQuartets(includeRests = False):
         ...     pp(vlq)
-        <music21.voiceLeading.VoiceLeadingQuartet v1n1=<music21.note.Note E> , v1n2=<music21.note.Note F>, v2n1=<music21.note.Note A>, v2n2=<music21.note.Note A>  
+        <music21.voiceLeading.VoiceLeadingQuartet v1n1=<music21.note.Note E> , v1n2=<music21.note.Note F>, v2n1=<music21.note.Note A>, v2n2=<music21.note.Note A> > 
 
         >>> for vlq in verticality22.getAllVoiceLeadingQuartets(includeOblique=False):
         ...     pp(vlq)
-        <music21.voiceLeading.VoiceLeadingQuartet v1n1=<music21.note.Note E> , v1n2=<music21.note.Note F>, v2n1=<music21.note.Note G>, v2n2=<music21.note.Note C>  
+        <music21.voiceLeading.VoiceLeadingQuartet v1n1=<music21.note.Note E> , v1n2=<music21.note.Note F>, v2n1=<music21.note.Note G>, v2n2=<music21.note.Note C> > 
 
         >>> verticality22.getAllVoiceLeadingQuartets(includeOblique=False, includeRests=False)
         []
@@ -669,13 +669,12 @@ class Verticality(object):
           
         >>> for vlq in verticality22.getAllVoiceLeadingQuartets(partPairNumbers=[(0,1)]):
         ...     pp(vlq)
-        <music21.voiceLeading.VoiceLeadingQuartet v1n1=<music21.note.Note E> , v1n2=<music21.note.Note F>, v2n1=<music21.note.Note G>, v2n2=<music21.note.Note C>          
+        <music21.voiceLeading.VoiceLeadingQuartet v1n1=<music21.note.Note E> , v1n2=<music21.note.Note F>, v2n1=<music21.note.Note G>, v2n2=<music21.note.Note C> >  
         
         >>> for vlq in verticality22.getAllVoiceLeadingQuartets(partPairNumbers=[(0,2),(1,2)]):
         ...     pp(vlq)
-        <music21.voiceLeading.VoiceLeadingQuartet v1n1=<music21.note.Note E> , v1n2=<music21.note.Note F>, v2n1=<music21.note.Note A>, v2n2=<music21.note.Note A>  
-        <music21.voiceLeading.VoiceLeadingQuartet v1n1=<music21.note.Note G> , v1n2=<music21.note.Note C>, v2n1=<music21.note.Note A>, v2n2=<music21.note.Note A>          
-        
+        <music21.voiceLeading.VoiceLeadingQuartet v1n1=<music21.note.Note E> , v1n2=<music21.note.Note F>, v2n1=<music21.note.Note A>, v2n2=<music21.note.Note A> >
+        <music21.voiceLeading.VoiceLeadingQuartet v1n1=<music21.note.Note G> , v1n2=<music21.note.Note C>, v2n1=<music21.note.Note A>, v2n2=<music21.note.Note A> >                 
         '''
         import itertools
         from music21.voiceLeading import VoiceLeadingQuartet
@@ -727,7 +726,7 @@ class Verticality(object):
         and which move here.
         
         >>> c = corpus.parse('luca/gloria').measures(1,8)
-        >>> tsCol = stream.timespans.streamToTimespanCollection(c)
+        >>> tsCol = stream.timespans.streamToTimespanCollection(c, flatten=True, classList=(note.Note, chord.Chord))
         >>> verticality22 = tsCol.getVerticalityAt(22.0)
         >>> for pm in verticality22.getPairedMotion():
         ...     print(pm)
@@ -840,111 +839,111 @@ class VerticalitySequence(collections.Sequence):
 #------------------------------------------------------------------------------
 
 
-class VoiceLeadingQuartet(common.SlottedObject):
-
-    ### CLASS VARIABLES ###
-
-    __slots__ = (
-        '_key_signature',
-        '_voiceOneNoteOne',
-        '_voiceOneNoteTwo',
-        '_voiceTwoNoteOne',
-        '_voiceTwoNoteTwo',
-        )
-
-    ### INITIALIZER ###
-
-    def __init__(
-        self,
-        voiceOneNoteOne=None,
-        voiceOneNoteTwo=None,
-        voiceTwoNoteOne=None,
-        voiceTwoNoteTwo=None,
-        key_signature=None,
-        ):
-        base.Music21Object.__init__(self)
-        if key_signature is None:
-            key_signature = key.Key('C')
-        self._key_signature = key.Key(key_signature)
-        self._voiceOneNoteOne = voiceOneNoteOne
-        self._voiceOneNoteTwo = voiceOneNoteTwo
-        self._voiceTwoNoteOne = voiceTwoNoteOne
-        self._voiceTwoNoteTwo = voiceTwoNoteTwo
-
-    ### PUBLIC METHODS ###
-
-    def hasAntiParallelMotion(self):
-        pass
-
-    def hasContraryMotion(self):
-        pass
-
-    def hasHiddenFifth(self):
-        pass
-
-    def hasHiddenInterval(self, expr):
-        pass
-
-    def hasHiddenOctave(self):
-        pass
-
-    def hasImproperResolution(self):
-        pass
-
-    def hasInwardContraryMotion(self):
-        pass
-
-    def hasNoMotion(self):
-        pass
-
-    def hasObliqueMotion(self):
-        pass
-
-    def hasOutwardContraryMotion(self):
-        pass
-
-    def hasParallelFifth(self):
-        pass
-
-    def hasParallelInterval(self, expr):
-        pass
-
-    def hasParallelMotion(self):
-        pass
-
-    def hasParallelOctave(self):
-        pass
-
-    def hasParallelUnison(self):
-        pass
-
-    def hasParallelUnisonOrOctave(self):
-        pass
-
-    def hasSimilarMotion(self):
-        pass
-
-    ### PUBLIC PROPERTIES ###
-
-    @property
-    def key_signature(self):
-        return self._key_signature
-
-    @property
-    def voiceOneNoteOne(self):
-        return self._voiceOneNoteOne
-
-    @property
-    def voiceOneNoteTwo(self):
-        return self._voiceOneNoteTwo
-
-    @property
-    def voiceTwoNoteOne(self):
-        return self._voiceTwoNoteOne
-
-    @property
-    def voiceTwoNoteTwo(self):
-        return self._voiceTwoNoteTwo
+# class VoiceLeadingQuartet(common.SlottedObject):
+# 
+#     ### CLASS VARIABLES ###
+# 
+#     __slots__ = (
+#         '_key_signature',
+#         '_voiceOneNoteOne',
+#         '_voiceOneNoteTwo',
+#         '_voiceTwoNoteOne',
+#         '_voiceTwoNoteTwo',
+#         )
+# 
+#     ### INITIALIZER ###
+# 
+#     def __init__(
+#         self,
+#         voiceOneNoteOne=None,
+#         voiceOneNoteTwo=None,
+#         voiceTwoNoteOne=None,
+#         voiceTwoNoteTwo=None,
+#         key_signature=None,
+#         ):
+#         base.Music21Object.__init__(self)
+#         if key_signature is None:
+#             key_signature = key.Key('C')
+#         self._key_signature = key.Key(key_signature)
+#         self._voiceOneNoteOne = voiceOneNoteOne
+#         self._voiceOneNoteTwo = voiceOneNoteTwo
+#         self._voiceTwoNoteOne = voiceTwoNoteOne
+#         self._voiceTwoNoteTwo = voiceTwoNoteTwo
+# 
+#     ### PUBLIC METHODS ###
+# 
+#     def hasAntiParallelMotion(self):
+#         pass
+# 
+#     def hasContraryMotion(self):
+#         pass
+# 
+#     def hasHiddenFifth(self):
+#         pass
+# 
+#     def hasHiddenInterval(self, expr):
+#         pass
+# 
+#     def hasHiddenOctave(self):
+#         pass
+# 
+#     def hasImproperResolution(self):
+#         pass
+# 
+#     def hasInwardContraryMotion(self):
+#         pass
+# 
+#     def hasNoMotion(self):
+#         pass
+# 
+#     def hasObliqueMotion(self):
+#         pass
+# 
+#     def hasOutwardContraryMotion(self):
+#         pass
+# 
+#     def hasParallelFifth(self):
+#         pass
+# 
+#     def hasParallelInterval(self, expr):
+#         pass
+# 
+#     def hasParallelMotion(self):
+#         pass
+# 
+#     def hasParallelOctave(self):
+#         pass
+# 
+#     def hasParallelUnison(self):
+#         pass
+# 
+#     def hasParallelUnisonOrOctave(self):
+#         pass
+# 
+#     def hasSimilarMotion(self):
+#         pass
+# 
+#     ### PUBLIC PROPERTIES ###
+# 
+#     @property
+#     def key_signature(self):
+#         return self._key_signature
+# 
+#     @property
+#     def voiceOneNoteOne(self):
+#         return self._voiceOneNoteOne
+# 
+#     @property
+#     def voiceOneNoteTwo(self):
+#         return self._voiceOneNoteTwo
+# 
+#     @property
+#     def voiceTwoNoteOne(self):
+#         return self._voiceTwoNoteOne
+# 
+#     @property
+#     def voiceTwoNoteTwo(self):
+#         return self._voiceTwoNoteTwo
 
 
 #------------------------------------------------------------------------------

@@ -316,13 +316,13 @@ class Music21Object(object):
 
             >>> ks = key.KeySignature(3)
             >>> ks.classSortOrder
-            1
+            2
 
 
             New classes can define their own default classSortOrder
 
             >>> class ExampleClass(base.Music21Object):
-            ...     classSortOrderDefault = 5
+            ...     classSortOrder = 5
             ...
             >>> ec1 = ExampleClass()
             >>> ec1.classSortOrder
@@ -475,6 +475,9 @@ class Music21Object(object):
         Given a class filter list (a list or tuple must be submitted),
         which may have strings or class objects, determine
         if this class is of the provided classes or a subclasses.
+        
+        NOTE: this is a performance critical operation
+        for performance, only accept lists or tuples
         '''
         # NOTE: this is a performance critical operation
         # for performance, only accept lists or tuples
@@ -1831,13 +1834,18 @@ class Music21Object(object):
         '''
         if useSite is False: # False or a Site; since None is a valid site, default is False
             useSite = self.activeSite
+
         if useSite is None:                
             foundOffset = self.offset
         else:
             try:
                 foundOffset = self.sites.siteDict[id(useSite)].offset  # allows for text offsets
             except KeyError:
-                foundOffset = self.getOffsetBySite(useSite)
+                try:
+                    foundOffset = self.getOffsetBySite(useSite)
+                except SitesException:
+                    #environLocal.warn(r)  # activeSite may have vanished! or does not have the element
+                    foundOffset = self.getOffsetBySite(None)
                 
         if foundOffset == 'highestTime':
             offset = 0.0
@@ -4354,38 +4362,43 @@ def mainTest(*testClasses, **kwargs):
 
     runAllTests = True
 
-    # start with doc tests, then add unit tests
+
+    failFast = bool(kwargs.get('failFast', True))
+    if failFast:
+        optionflags = (
+            doctest.ELLIPSIS |
+            doctest.NORMALIZE_WHITESPACE |
+            doctest.REPORT_ONLY_FIRST_FAILURE
+            )
+    else:
+        optionflags = (
+            doctest.ELLIPSIS |
+            doctest.NORMALIZE_WHITESPACE
+            )
+    
+    globs = None
     if ('noDocTest' in testClasses or 'noDocTest' in sys.argv
         or 'nodoctest' in sys.argv):
+        skipDoctest = True
+    else:
+        skipDoctest = False
+
+    # start with doc tests, then add unit tests
+    if skipDoctest:
         # create a test suite for storage
         s1 = unittest.TestSuite()
     else:
         # create test suite derived from doc tests
         # here we use '__main__' instead of a module
-        failFast = bool(kwargs.get('failFast', True))
-        if failFast:
-            optionflags = (
-                doctest.ELLIPSIS |
-                doctest.NORMALIZE_WHITESPACE |
-                doctest.REPORT_ONLY_FIRST_FAILURE
-                )
-        else:
-            optionflags = (
-                doctest.ELLIPSIS |
-                doctest.NORMALIZE_WHITESPACE
-                )
         if 'moduleRelative' in testClasses or 'moduleRelative' in sys.argv:
-            s1 = doctest.DocTestSuite(
-                '__main__',
-                optionflags=optionflags,
-                )
+            pass
         else:
             globs = __import__('music21').__dict__.copy()
-            s1 = doctest.DocTestSuite(
-                '__main__',
-                globs=globs,
-                optionflags=optionflags,
-                )
+        s1 = doctest.DocTestSuite(
+            '__main__',
+            globs=globs,
+            optionflags=optionflags,
+            )
 
     verbosity = 1
     if 'verbose' in testClasses or 'verbose' in sys.argv:
@@ -4432,32 +4445,21 @@ def mainTest(*testClasses, **kwargs):
             s2 = unittest.defaultTestLoader.loadTestsFromTestCase(t)
             s1.addTests(s2)
 
+    ### Add _DOC_ATTR tests...
+    if not skipDoctest:
+        import inspect
+        stacks = inspect.stack()
+        if len(stacks) > 1:
+            outerFrameTuple = stacks[1]
+        else:
+            outerFrameTuple = stacks[0]
+        outerFrame = outerFrameTuple[0]
+        outerFilename = outerFrameTuple[1]
+        localVariables = list(outerFrame.f_locals.values())
+        common.addDocAttrTestsToSuite(s1, localVariables, outerFilename, globs, optionflags)
 
     if runAllTests is True:
-        if six.PY3: # correct "M21Exception" to "...M21Exception"
-            for dtc in s1: # Suite to DocTestCase
-                if hasattr(dtc, '_dt_test'):
-                    dt = dtc._dt_test # DocTest
-                    for example in dt.examples: # fix Traceback exception differences Py2 to Py3
-                        if example.exc_msg is not None and len(example.exc_msg) > 0:
-                            example.exc_msg = "..." + example.exc_msg[1:]
-                        elif (example.want is not None and
-                                example.want.startswith('u\'')):
-                                    # probably a unicode example:
-                                    # simplistic, since (u'hi', u'bye')
-                                    # won't be caught, but saves a lot of anguish
-                                example.want = example.want[1:]
-        elif six.PY2: #
-            for dtc in s1: # Suite to DocTestCase
-                if hasattr(dtc, '_dt_test'):
-                    dt = dtc._dt_test # DocTest
-                    for example in dt.examples: # fix Traceback exception differences Py2 to Py3
-                        if (example.want is not None and
-                                example.want.startswith('b\'')):
-                                    # probably a unicode example:
-                                    # simplistic, since (b'hi', b'bye')
-                                    # won't be caught, but saves a lot of anguish
-                                example.want = example.want[1:]
+        common.fixTestsForPy2and3(s1)
                                     
         runner = unittest.TextTestRunner()
         runner.verbosity = verbosity

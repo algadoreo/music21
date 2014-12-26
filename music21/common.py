@@ -9,13 +9,15 @@
 # Copyright:    Copyright © 2009-2013 Michael Scott Cuthbert and the music21 Project
 # License:      LGPL or BSD, see license.txt
 #-------------------------------------------------------------------------------
-'''Utility constants, dictionaries, functions, and objects used throughout music21.
+'''
+Utility constants, dictionaries, functions, and objects used throughout music21.
 '''
 
 # should NOT import music21 or anything like that, except in doctests.
 import re
 import copy
 import math, sys, os
+import doctest
 import unittest
 import time
 import hashlib
@@ -132,6 +134,7 @@ def subConverterList():
     <class 'music21.converter.subConverters.ConverterHumdrum'>
     <class 'music21.converter.subConverters.ConverterIPython'>
     <class 'music21.converter.subConverters.ConverterLilypond'>
+    <class 'music21.converter.subConverters.ConverterMEI'>
     <class 'music21.converter.subConverters.ConverterMidi'>
     <class 'music21.converter.subConverters.ConverterMuseData'>
     <class 'music21.converter.subConverters.ConverterMusicXML'>
@@ -398,9 +401,9 @@ def findFormatExtURL(url):
     DEPRECATED May 2014 -- moving to converter
 
 
-    >>> urlA = 'http://kern.ccarh.org/cgi-bin/ksdata?l=cc/schubert/piano/d0576&file=d0576-06.krn&f=xml'
-    >>> urlB = 'http://kern.ccarh.org/cgi-bin/ksdata?l=cc/schubert/piano/d0576&file=d0576-06.krn&f=kern'
-    >>> urlC = 'http://kern.ccarh.org/cgi-bin/ksdata?l=cc/bach/cello&file=bwv1007-01.krn&f=xml'
+    >>> urlA = 'http://somesite.com/?l=cc/schubert/piano/d0576&file=d0576-06.krn&f=xml'
+    >>> urlB = 'http://somesite.com/cgi-bin/ksdata?l=cc/schubert/piano/d0576&file=d0576-06.krn&f=kern'
+    >>> urlC = 'http://somesite.com/cgi-bin/ksdata?l=cc/bach/cello&file=bwv1007-01.krn&f=xml'
     >>> urlF = 'http://junk'
 
     >>> common.findFormatExtURL(urlA)
@@ -1658,19 +1661,25 @@ def stripAddresses(textString, replacement = "ADDRESS"):
 
 
 def sortModules(moduleList):
-    '''Sort a lost of imported module names such that most recently modified is
-    first'''
+    '''
+    Sort a lost of imported module names such that most recently modified is
+    first.  In ties, last accesstime is used then module name
+    
+    Will return a different order each time depending on the last mod time
+    '''
     sort = []
+    modNameToMod = {}    
     for mod in moduleList:
+        modNameToMod[mod.__name__] = mod
         fp = mod.__file__ # returns the pyc file
         stat = os.stat(fp)
         lastmod = time.localtime(stat[8])
         asctime = time.asctime(lastmod)
-        sort.append((lastmod, asctime, mod))
+        sort.append((lastmod, asctime, mod.__name__))
     sort.sort()
     sort.reverse()
     # just return module list
-    return [mod for lastmod, asctime, mod in sort]
+    return [modNameToMod[modName] for lastmod, asctime, modName in sort]
 
 
 def sortFilesRecent(fileList):
@@ -2215,6 +2224,79 @@ def relativepath(path, start='.'):
         return path
     return os.path.relpath(path, start)
 
+
+###### test related functions
+
+def addDocAttrTestsToSuite(suite, moduleVariableLists, outerFilename=None, globs=False, optionflags=(
+            doctest.ELLIPSIS |
+            doctest.NORMALIZE_WHITESPACE
+            )):
+    '''
+    takes a suite, such as a doctest.DocTestSuite and the list of variables
+    in a module and adds from those classes that have a _DOC_ATTR dictionary
+    (which documents the properties in the class) any doctests to the suite.
+    
+    >>> import doctest
+    >>> s1 = doctest.DocTestSuite(chord)
+    >>> s1TestsBefore = len(s1._tests)
+    >>> allLocals = [getattr(chord, x) for x in dir(chord)]
+    >>> common.addDocAttrTestsToSuite(s1, allLocals)
+    >>> s1TestsAfter = len(s1._tests)
+    >>> s1TestsAfter - s1TestsBefore
+    1
+    >>> t = s1._tests[-1]
+    >>> t
+    isRest ()
+    '''
+    if globs is False:
+        globs = __import__('music21').__dict__.copy()
+    for lvk in moduleVariableLists:
+        if not (inspect.isclass(lvk)):
+            continue
+        docattr = getattr(lvk, '_DOC_ATTR', None)
+        if docattr is None:
+            continue
+        for dockey in docattr:
+            documentation = docattr[dockey]
+            #print(documentation)
+            dt = doctest.DocTestParser().get_doctest(documentation, globs, dockey, outerFilename, 0)
+            if len(dt.examples) == 0:
+                continue
+            dtc = doctest.DocTestCase(dt, optionflags=optionflags)
+            #print(dtc)
+            suite.addTest(dtc)
+
+
+def fixTestsForPy2and3(doctestSuite):
+    '''
+    Fix doctests so that they work in both python2 and python3, namely
+    unicode/byte characters and added module names to exceptions.
+    
+    >>> import doctest
+    >>> s1 = doctest.DocTestSuite(chord)
+    >>> common.fixTestsForPy2and3(s1)
+    '''
+    for dtc in doctestSuite: # Suite to DocTestCase
+        if not hasattr(dtc, '_dt_test'):
+            continue
+        dt = dtc._dt_test # DocTest
+        for example in dt.examples: # fix Traceback exception differences Py2 to Py3
+            if six.PY3:
+                if example.exc_msg is not None and len(example.exc_msg) > 0:
+                    example.exc_msg = "..." + example.exc_msg[1:]
+                elif (example.want is not None and
+                        example.want.startswith('u\'')):
+                            # probably a unicode example:
+                            # simplistic, since (u'hi', u'bye')
+                            # won't be caught, but saves a lot of anguish
+                        example.want = example.want[1:]
+            elif six.PY2:
+                if (example.want is not None and
+                        example.want.startswith('b\'')):
+                            # probably a unicode example:
+                            # simplistic, since (b'hi', b'bye')
+                            # won't be caught, but saves a lot of anguish
+                        example.want = example.want[1:]
 
 #-------------------------------------------------------------------------------
 _singletonCounter = {}

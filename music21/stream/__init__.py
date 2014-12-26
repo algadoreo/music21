@@ -1298,7 +1298,7 @@ class Stream(base.Music21Object):
         spannerBundle = new.spannerBundle
         # only proceed if there are spanners, otherwise creating semiFlat
         if len(spannerBundle) > 0:
-            # iterate over complete semi flat (need containers); find
+            # iterate over complete semi-flat (need containers); find
             # all new/old pairs
             for e in new.semiFlat:
                 #if 'Spanner' in e.classes:
@@ -1310,7 +1310,8 @@ class Stream(base.Music21Object):
                     # this will clear and replace the proper locations on
                     # the SpannerStorage Stream
                     spannerBundle.replaceSpannedElement(e._idLastDeepCopyOf, e)
-                    # need to remove the old SpannerStorage Stream from this element; however, all we have here is the new Spanner and new elements
+                    # need to remove the old SpannerStorage Stream from this element; 
+                    # however, all we have here is the new Spanner and new elements
                     # this must be done here, not when originally copying
                     e.purgeOrphans(excludeStorageStreams=False)
 
@@ -5053,8 +5054,8 @@ class Stream(base.Music21Object):
         if cacheKey not in self._cache or self._cache[cacheKey] is None:
             hashedTSC = timespans.streamToTimespanCollection(
                 self,
-                classList=classList,
                 flatten=recurse,
+                classList=classList,
                 )
             self._cache[cacheKey] = hashedTSC
         return self._cache[cacheKey]
@@ -12026,6 +12027,7 @@ class Score(Stream):
         The `classFilterList` can be used to specify which objects
         contained in Measures are transferred.
 
+        It also flattens all voices within a part.
 
         >>> s = corpus.parse('bwv66.6')
         >>> len(s.parts)
@@ -12041,7 +12043,7 @@ class Score(Stream):
         post = self.parts[0].measureTemplate(fillWithRests=False)
         for i, m in enumerate(post.getElementsByClass('Measure')):
             for p in self.parts:
-                mNew = copy.deepcopy(p.getElementsByClass('Measure')[i])
+                mNew = copy.deepcopy(p.getElementsByClass('Measure')[i]).flat
                 for e in mNew:
                     match = False
                     for cf in classFilterList:
