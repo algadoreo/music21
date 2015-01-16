@@ -6,7 +6,7 @@
 # Authors:      Michael Scott Cuthbert
 #               Christopher Ariza
 #
-# Copyright:    Copyright © 2008-2012 Michael Scott Cuthbert and the music21 Project
+# Copyright:    Copyright © 2006-2014 Michael Scott Cuthbert and the music21 Project
 # License:      LGPL or BSD, see license.txt
 #-------------------------------------------------------------------------------
 '''
@@ -141,17 +141,30 @@ class Lyric(SlottedObject):
         self,
         text=None,
         number=1,
-        syllabic=None,
-        applyRaw=False,
-        identifier=None,
+        **kwargs
         ):
+        self._identifier = None
+        self._number = None
+
         # these are set by setTextAndSyllabic
         self.text = None
         # given as begin, middle, end, or single
-        self.syllabic = syllabic
+        if 'syllabic' in kwargs:
+            self.syllabic = kwargs['syllabic']
+        else:
+            self.syllabic = None
+
+        if 'applyRaw' in kwargs:
+            applyRaw = kwargs['applyRaw']
+        else:
+            applyRaw = False            
         self.setTextAndSyllabic(text, applyRaw)
         self.number = number
-        self.identifier = identifier
+
+        if 'identifier' in kwargs:
+            self.identifier = kwargs['identifier']
+        else:
+            self.identifier = None
 
     ### SPECIAL METHODS ###
 
@@ -209,7 +222,7 @@ class Lyric(SlottedObject):
                 self.syllabic = 'single'
 
     ### PUBLIC PROPERTIES ###
-    
+
     @property
     def identifier(self):
         '''
@@ -328,11 +341,11 @@ class GeneralNote(base.Music21Object):
         self._duration = tempDuration
 
         # only apply default if components are empty
-        # looking at private _components so as not to trigger
+        # looking at currentComponents so as not to trigger
         # _updateComponents
 
         if (self.duration.quarterLength == 0 and
-            len(self.duration._components) == 0):
+            len(self.duration.currentComponents()) == 0):
             self.duration.addDurationUnit(duration.DurationUnit('quarter'))
             self.duration.updateQuarterLength()
 
@@ -349,7 +362,7 @@ class GeneralNote(base.Music21Object):
 
     #---------------------------------------------------------------------------
     def _getEditorial(self):
-        if (self._editorial is None):
+        if self._editorial is None:
             self._editorial = editorial.NoteEditorial()
         return self._editorial
 
@@ -402,7 +415,8 @@ class GeneralNote(base.Music21Object):
             return None
 
     def _setColor(self, value):
-        '''should check data here
+        r'''
+        should check data here
         uses this re: #[\dA-F]{6}([\dA-F][\dA-F])?
         No: because Lilypond supports "blue", "red" etc., as does CSS; musicxml also supports alpha
         '''
@@ -415,9 +429,8 @@ class GeneralNote(base.Music21Object):
         '''
         returns the first Lyric's text
 
-        todo: should return a \\n separated string of lyrics
+        TODO: should return a \\n separated string of lyrics.  See text.assembleAllLyrics
         '''
-
         if len(self.lyrics) > 0:
             return self.lyrics[0].text
         else:
@@ -425,9 +438,6 @@ class GeneralNote(base.Music21Object):
 
     def _setLyric(self, value):
         '''
-        TODO: should check data here
-        should split \\n separated lyrics into different lyrics
-
         presently only creates one lyric, and destroys any existing
         lyrics
         '''
@@ -436,11 +446,11 @@ class GeneralNote(base.Music21Object):
             self.lyrics.append(Lyric(value))
 
     lyric = property(_getLyric, _setLyric,
-        doc = '''The lyric property can
+        doc = '''
+        The lyric property can
         be used to get and set a lyric for this
         Note, Chord, or Rest. This is a simplified version of the more general
         :meth:`~music21.note.GeneralNote.addLyric` method.
-
 
         >>> a = note.Note('A4')
         >>> a.lyrics
@@ -466,9 +476,10 @@ class GeneralNote(base.Music21Object):
         ''')
 
     def addLyric(self, text, lyricNumber = None, applyRaw = False, lyricIdentifier=None):
-        '''Adds a lyric, or an additional lyric, to a Note, Chord, or Rest's lyric list. If `lyricNumber` is not None, a specific line of lyric text can be set. The lyricIdentifier
+        '''
+        Adds a lyric, or an additional lyric, to a Note, Chord, or Rest's lyric list. 
+        If `lyricNumber` is not None, a specific line of lyric text can be set. The lyricIdentifier
         can also be set.
-
 
         >>> n1 = note.Note()
         >>> n1.addLyric("hello")
@@ -538,7 +549,7 @@ class GeneralNote(base.Music21Object):
             if foundLyric is False:
                 self.lyrics.append(Lyric(text, lyricNumber, applyRaw = applyRaw, identifier = lyricIdentifier))
 
-    def insertLyric(self, text, index = 0, applyRaw = False, identifier = None):
+    def insertLyric(self, text, index=0, applyRaw=False, identifier=None):
         '''Inserts a lyric into the Note, Chord, or Rest's lyric list in front of
         the index specified (0 by default), using index + 1 as the inserted lyric's
         line number. shifts line numbers of all following lyrics in list
@@ -561,7 +572,7 @@ class GeneralNote(base.Music21Object):
             text = str(text)
         for lyric in self.lyrics[index:]:
             lyric.number += 1
-        self.lyrics.insert(index, Lyric(text, (index+ 1), applyRaw, identifier = identifier ))
+        self.lyrics.insert(index, Lyric(text, (index+ 1), applyRaw=applyRaw, identifier=identifier ))
 
     def hasLyrics(self):
         '''Return True if this object has any lyrics defined
@@ -675,12 +686,19 @@ class NotRest(GeneralNote):
         '''
         As NotRest objects have a Volume, objects, and Volume objects
         store weak refs to the to parent object, need to specialize deep copy handling
+        
+        >>> import copy
+        >>> n = note.NotRest()
+        >>> n.volume = volume.Volume(50)
+        >>> m = copy.deepcopy(n)
+        >>> m.volume.parent is m
+        True
         '''
         #environLocal.printDebug(['calling NotRest.__deepcopy__', self])
-        new = GeneralNote.__deepcopy__(self, memo=memo)
+        new = super(NotRest, self).__deepcopy__(memo=memo)
         # after copying, if a Volume exists, it is linked to the old object
         # look at _volume so as not to create object if not already there
-        if new._volume is not None:
+        if self._volume is not None:
             new.volume.parent = new # update with new instance
         return new
 
@@ -751,19 +769,21 @@ class NotRest(GeneralNote):
             value = None # allow setting to none or None
         if value == 'filled':
             value = 'yes'
-        elif value not in ['default', 'yes', 'no']:
+        elif value not in ('default', 'yes', 'no'):
             raise NotRestException('not a valid notehead fill value: %s' % value)
         self._noteheadFill = value
 
     noteheadFill = property(_getNoteheadFill, _setNoteheadFill, doc='''
-        Get or set the note head fill status of this NotRest. Valid note head fill values are yes, no, default, and None.
-
-
+        Get or set the note head fill status of this NotRest. Valid note head fill values are 
+        'yes', 'no', 'default', and None.
 
         >>> n = note.Note()
         >>> n.noteheadFill = 'no'
         >>> n.noteheadFill
         'no'
+        >>> n.noteheadFill = 'filled'
+        >>> n.noteheadFill
+        'yes'
 
         >>> n.noteheadFill = 'junk'
         Traceback (most recent call last):
@@ -775,11 +795,36 @@ class NotRest(GeneralNote):
         return self._noteheadParenthesis
 
     def _setNoteheadParenthesis(self, value):
-        # TODO: check for valid values: yes and no?
+        if value in (True, 'yes', 1):
+            value = True
+        elif value in (False, 'no', 0):
+            value = False
+        else:
+            raise NotRestException('notehead parentheses must be True or False, not %r' % value)       
         self._noteheadParenthesis = value
+        
 
     noteheadParenthesis = property(_getNoteheadParenthesis, _setNoteheadParenthesis, doc='''
         Get or set the note head parentheses for this Note/Unpitched/Chord object.
+
+        >>> n = note.Note()
+        >>> n.noteheadParenthesis
+        False
+        >>> n.noteheadParenthesis = True
+        >>> n.noteheadParenthesis
+        True
+        
+        'yes' or 1 equate to True; 'no' or 0 to False
+        
+        >>> n.noteheadParenthesis = 'no'
+        >>> n.noteheadParenthesis
+        False
+        
+        Anything else raises an exception:
+        
+        >>> n.noteheadParenthesis = 'blah'
+        Traceback (most recent call last):
+        NotRestException: notehead parentheses must be True or False, not 'blah'
         ''')
 
     #---------------------------------------------------------------------------
@@ -887,15 +932,15 @@ class Note(NotRest):
         if len(arguments) > 0:
             if isinstance(arguments[0], pitch.Pitch):
                 self.pitch = arguments[0]
-            else: # assume first arg is pitch
+            else: # assume first argument is pitch
                 self.pitch = pitch.Pitch(arguments[0], **keywords)
         else: # supply a default pitch
             if 'name' in keywords:
-                del(keywords['name'])
+                del keywords['name']
             self.pitch = pitch.Pitch('C4', **keywords)
 
     #---------------------------------------------------------------------------
-    # operators, representations, and transformatioins
+    # operators, representations, and transformations
 
     def __repr__(self):
         return "<music21.note.Note %s>" % self.name
@@ -1337,55 +1382,6 @@ class Note(NotRest):
 #-------------------------------------------------------------------------------
 # convenience classes
 
-class EighthNote(Note):
-    '''
-    A simple way of creating an eighth note (used in testing and docs mostly)
-    Most eighth notes are not `EighthNote` objects
-
-    DEPRECATED May 2014: use Note(type='eighth') instead
-    '''
-    def __init__(self, *arguments, **keywords):
-        Note.__init__(self, *arguments, **keywords)
-        self.duration.type = "eighth"
-
-class QuarterNote(Note):
-    '''
-    A simple way of creating a quarter note (used in testing and docs mostly)
-    Most quarter notes are not `QuarterNote` objects
-
-    N.B. the default `Note` object is a quarter note, so this is only
-    needed for explicitly stating that a note is a quarter note.
-
-    DEPRECATED May 2014: use Note(type='quarter') instead
-    '''
-    def __init__(self, *arguments, **keywords):
-        Note.__init__(self, *arguments, **keywords)
-        self.duration.type = "quarter"
-
-class HalfNote(Note):
-    '''
-    A simple way of creating a half note (used in testing and docs mostly)
-    Most half notes are not `HalfNote` objects.
-
-    DEPRECATED May 2014: use Note(type='half') instead
-    '''
-    def __init__(self, *arguments, **keywords):
-        Note.__init__(self, *arguments, **keywords)
-        self.duration.type = "half"
-
-class WholeNote(Note):
-    '''
-    A simple way of creating a whole note (used in testing and docs mostly)
-    Most whole notes are not `WholeNote` objects
-
-    DEPRECATED May 2014: use Note(type='whole') instead
-    '''
-    def __init__(self, *arguments, **keywords):
-        Note.__init__(self, *arguments, **keywords)
-        self.duration.type = "whole"
-
-
-
 
 #-------------------------------------------------------------------------------
 class Unpitched(NotRest):
@@ -1463,12 +1459,9 @@ class Rest(GeneralNote):
     'lineShift': 'number of lines/spaces to shift the note upwards or downwards for display.',
     }
 
-    # TODO: may need to set a display pitch,
-    # as this is necessary in mxl
-
     def __init__(self, *arguments, **keywords):
         GeneralNote.__init__(self, **keywords)
-        self.lineShift = 0; # display line
+        self.lineShift = 0 # display line
 
     def __repr__(self):
         return "<music21.note.Rest %s>" % self.name
@@ -1536,7 +1529,7 @@ class SpacerRest(Rest):
     This object should only be used for making hidden space in a score in lilypond.
     '''
     def __init__(self, *arguments, **keywords):
-            Rest.__init__(self, **keywords)
+        Rest.__init__(self, **keywords)
 
     def __repr__(self):
         return "<music21.note.SpacerRest %s duration=%s>" % (self.name, self.duration.quarterLength)
@@ -1630,7 +1623,7 @@ class Test(unittest.TestCase):
         #print outStr
         self.assertEqual(matchStr, outStr)
         i = 0
-        for thisNote in (note1.splitAtDurations()):
+        for thisNote in note1.splitAtDurations():
             matchSub = matchStr.split('\n')[i]
             conv = LilypondConverter()
             conv.appendM21ObjectToContext(thisNote)
@@ -1707,7 +1700,7 @@ class Test(unittest.TestCase):
 
 
     def testNoteBeatProperty(self):
-        from music21 import stream, meter, note
+        from music21 import stream, meter
 
         data = [
     ['3/4', .5, 6, [1.0, 1.5, 2.0, 2.5, 3.0, 3.5],
@@ -1737,7 +1730,7 @@ class Test(unittest.TestCase):
 
         # one measure case
         for tsStr, nQL, nCount, matchBeat, matchBeatDur in data:
-            n = note.Note() # need fully qualified name
+            n = Note() # need fully qualified name
             n.quarterLength = nQL
             m = stream.Measure()
             m.timeSignature = meter.TimeSignature(tsStr)
@@ -1759,7 +1752,7 @@ class Test(unittest.TestCase):
         # two measure case
         for tsStr, nQL, nCount, matchBeat, matchBeatDur in data:
             p = stream.Part()
-            n = note.Note()
+            n = Note()
             n.quarterLength = nQL
 
             # m1 has time signature
@@ -1884,7 +1877,7 @@ class Test(unittest.TestCase):
 
 
     def testMetricalAccent(self):
-        from music21 import note, meter, stream
+        from music21 import meter, stream
         data = [
 ('4/4', 8, .5, [1.0, 0.125, 0.25, 0.125, 0.5, 0.125, 0.25, 0.125]),
 ('3/4', 6, .5, [1.0, 0.25, 0.5, 0.25, 0.5, 0.25] ),
@@ -1906,7 +1899,7 @@ class Test(unittest.TestCase):
 
             m = stream.Measure()
             m.timeSignature = meter.TimeSignature(tsStr)
-            n = note.Note()
+            n = Note()
             n.quarterLength = dur
             m.repeatAppend(n, nCount)
 
@@ -1936,11 +1929,10 @@ class Test(unittest.TestCase):
         #s.show()
 
     def testVolumeA(self):
-        from music21 import note, volume
         v1 = volume.Volume()
 
-        n1 = note.Note()
-        n2 = note.Note()
+        n1 = Note()
+        n2 = Note()
 
         n1.volume = v1 # can set as v1 has no parent
         self.assertEqual(n1.volume, v1)
@@ -1953,9 +1945,7 @@ class Test(unittest.TestCase):
 
     def testVolumeB(self):
         # manage deepcopying properly
-
-        from music21 import note
-        n1 = note.Note()
+        n1 = Note()
 
         n1.volume.velocity = 100
         self.assertEqual(n1.volume.velocity, 100)

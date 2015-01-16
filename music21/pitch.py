@@ -32,7 +32,7 @@ environLocal = environment.Environment(_MOD)
 
 try:
     basestring
-except:
+except NameError:
     basestring = str # @ReservedAssignment
 
 STEPREF = {
@@ -297,7 +297,7 @@ def _convertCentsToAlterAndCents(shift):
 
 
 def _convertHarmonicToCents(value):
-    '''Given a harmonic number, return the total number shift in cents assuming 12 tone equal temperament.
+    r'''Given a harmonic number, return the total number shift in cents assuming 12 tone equal temperament.
 
     >>> pitch._convertHarmonicToCents(8)
     3600
@@ -719,20 +719,30 @@ class Accidental(SlottedObject):
     def __repr__(self):
         return '<accidental %s>' % self.name
 
-    ### REMOVED METHODS ####
-    def show(self, *args, **kws):
-        from music21 import note
-        environLocal.warn("as of v.1.9., Pitches are not Music21Objects. Do not call show on them; this method will go away in 2.0")
-        n = note.Note()
-        n.pitch = self
-        n.show(*args, **kws)
-    
-    def write(self, *args, **kws):
-        from music21 import note
-        environLocal.warn("as of v.1.9., Pitches are not Music21Objects. Do not call write on them; this method will go away in 2.0")
-        n = note.Note()
-        n.pitch = self
-        n.write(*args, **kws)
+    @classmethod
+    def listNames(cls):
+        '''
+        Returns a list of accidental names that have any sort of
+        semantic importance in music21.
+        
+        You may choose a name not from this list (1/7th-sharp) but
+        if it's not on this list don't expect it to do anything for you.
+        
+        This is a class method, so you may call it directly on the class:
+        
+        Listed in alphabetical order. (TODO: maybe from lowest to highest
+        or something implying importance?)
+        
+        >>> pitch.Accidental.listNames()
+         ['double-flat', 'double-sharp', 'flat', 'half-flat', 'half-sharp', 'natural', 'one-and-a-half-flat', 'one-and-a-half-sharp', 'quadruple-flat', 'quadruple-sharp', 'sharp', 'triple-flat', 'triple-sharp']
+        
+        Or call on an instance of an accidental:
+        
+        >>> f = pitch.Accidental('flat')
+        >>> f.listNames()
+         ['double-flat', 'double-sharp', 'flat', 'half-flat', 'half-sharp', 'natural', 'one-and-a-half-flat', 'one-and-a-half-sharp', 'quadruple-flat', 'quadruple-sharp', 'sharp', 'triple-flat', 'triple-sharp']              
+        '''
+        return sorted(accidentalNameToModifier.keys(), key=str.lower)
 
     ### PUBLIC METHODS ###
 
@@ -1187,16 +1197,17 @@ class Pitch(object):
     such as .classes and .groups, but they don't have Duration or Sites objects
     '''
     # define order to present names in documentation; use strings
-    _DOC_ORDER = ['name', 'nameWithOctave', 'step', 'pitchClass', 'octave', 'midi', 'german', 'french', 'spanish', 'italian','dutch']
-    # documentation for all attributes (not properties or methods)
-    _DOC_ATTR = {
-    }
+    _DOC_ORDER = ['name', 'nameWithOctave', 'step', 'pitchClass', 'octave', 'midi', 'german', 
+                  'french', 'spanish', 'italian', 'dutch']
+    ## documentation for all attributes (not properties or methods)
+    #_DOC_ATTR = {
+    #}
 
     # constants shared by all classes
     _twelfth_root_of_two = TWELFTH_ROOT_OF_TWO
 
     def __init__(self, name=None, **keywords):
-        self.classes = [x.__name__ for x in self.__class__.mro()] 
+        self.classes = [x.__name__ for x in self.__class__.mro()]  
         self.groups = base.Groups()
 
         if isinstance(name, type(self)):
@@ -3236,10 +3247,6 @@ class Pitch(object):
         D# becomes E-flat, D-flat becomes C#, G# and A-flat are left
         alone.
 
-        TODO: should be called automatically after ChromaticInterval
-        transpositions.
-
-
         >>> p1 = pitch.Pitch("B#5")
         >>> p1.simplifyEnharmonic().nameWithOctave
         'C6'
@@ -3647,7 +3654,7 @@ class Pitch(object):
     #---------------------------------------------------------------------------
     # utilities for pitch object manipulation
 
-    def transposeBelowTarget(self, target, minimize=False):
+    def transposeBelowTarget(self, target, minimize=False, inPlace=True):
         '''
         Given a source Pitch, shift it down octaves until it is below the
         target. Note: this manipulates src inPlace.
@@ -3655,8 +3662,23 @@ class Pitch(object):
         If `minimize` is True, a pitch below the target will move up to the
         nearest octave.
 
-        >>> pitch.Pitch('g5').transposeBelowTarget(pitch.Pitch('c#4'))
+        >>> p = pitch.Pitch('g5')
+        >>> p.transposeBelowTarget(pitch.Pitch('c#4'), inPlace=True)
         <music21.pitch.Pitch G3>
+        >>> p
+        <music21.pitch.Pitch G3>
+
+
+        Music21 2.0 transition period: inPlace is allowed now. Right now
+        the default is True, but it will become False later.
+
+        >>> p = pitch.Pitch('g5')
+        >>> c = p.transposeBelowTarget(pitch.Pitch('c#4'), inPlace=False)
+        >>> c
+        <music21.pitch.Pitch G3>
+        >>> p
+        <music21.pitch.Pitch G5>
+        
 
         If already below the target, make no change:
 
@@ -3668,8 +3690,13 @@ class Pitch(object):
         >>> pitch.Pitch('g#8').transposeBelowTarget(pitch.Pitch('g#1'))
         <music21.pitch.Pitch G#1>
 
+
+        This does nothing because it is already low enough...
+
         >>> pitch.Pitch('g#2').transposeBelowTarget(pitch.Pitch('f#8'))
         <music21.pitch.Pitch G#2>
+
+        But with minimize=True, it makes a difference...
 
         >>> pitch.Pitch('g#2').transposeBelowTarget(pitch.Pitch('f#8'), minimize=True)
         <music21.pitch.Pitch G#7>
@@ -3678,8 +3705,11 @@ class Pitch(object):
         <music21.pitch.Pitch F#8>
 
         '''
-        # TODO: add inPlace as an option, default is True
-        src = self
+        # TODO: switch inPlace: default is True now, will become False.
+        if inPlace:
+            src = self
+        else:
+            src = copy.deepcopy(self)
         while True:
             # ref 20, min 10, lower ref
             # ref 5, min 10, do not lower
@@ -3696,7 +3726,7 @@ class Pitch(object):
                     src.octave += 1
         return src
 
-    def transposeAboveTarget(self, target, minimize=False):
+    def transposeAboveTarget(self, target, minimize=False, inPlace=True):
         '''
         Given a source Pitch, shift it up octaves until it is above the target.
         Note: this manipulates src inPlace.
@@ -3729,7 +3759,11 @@ class Pitch(object):
         <music21.pitch.Pitch D3>
 
         '''
-        src = self
+        # TODO: switch inPlace: default is True now, will become False.
+        if inPlace:
+            src = self
+        else:
+            src = copy.deepcopy(self)
         # case where self is below target
         while True:
             # ref 20, max 10, do not raise ref
@@ -4334,7 +4368,7 @@ class Test(unittest.TestCase):
         '''Test updating accidental display.
         '''
 
-        def proc(pList, past=[]):
+        def proc(pList, past):
             for p in pList:
                 p.updateAccidentalDisplay(past)
                 past.append(p)
@@ -4437,7 +4471,7 @@ class Test(unittest.TestCase):
         '''
         from music21 import key
 
-        def proc(pList, past=[], alteredPitches=[]):
+        def proc(pList, past, alteredPitches):
             for p in pList:
                 p.updateAccidentalDisplay(past, alteredPitches=alteredPitches)
                 past.append(p)
@@ -4545,12 +4579,12 @@ class Test(unittest.TestCase):
         test if octave display is working
         '''
 
-        def proc1(pList, past=[]):
+        def proc1(pList, past):
             for p in pList:
                 p.updateAccidentalDisplay(past, cautionaryPitchClass=True, cautionaryNotImmediateRepeat=False)
                 past.append(p)
 
-        def proc2(pList, past=[]):
+        def proc2(pList, past):
             for p in pList:
                 p.updateAccidentalDisplay(past, cautionaryPitchClass=False, cautionaryNotImmediateRepeat=False)
                 past.append(p)
@@ -4792,3 +4826,4 @@ _DOC_ORDER = [Pitch, Accidental, Microtone]
 if __name__ == "__main__":
     import music21
     music21.mainTest(Test)
+    
