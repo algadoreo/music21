@@ -105,10 +105,16 @@ from music21 import clef #@UnusedImport
 from music21 import tempo #@UnusedImport
 from music21.theoryAnalysis import theoryAnalyzer #@UnusedImport
 
+from music21.ext import six
 
-from music21.webapps import commands
-from music21.webapps import templates
-from music21.webapps import apps
+if six.PY2:
+    import apps
+    import commands
+    import templates
+else:
+    from music21.webapps import templates # @Reimport
+    from music21.webapps import apps      # @Reimport
+    from music21.webapps import commands  # @Reimport
 
 # python library imports
 import json
@@ -121,7 +127,6 @@ except ImportError:
 import re #@UnusedImport
 import traceback
 
-from music21.ext import six
 from music21.ext.six import StringIO
 
 if six.PY3:
@@ -1005,7 +1010,7 @@ class CommandProcessor(object):
                 "ho"    : "int"
             }
         '''
-        return_obj = {};
+        return_obj = {}
         return_obj['status'] = "success"
         return_obj['dataDict'] = {}
         return_obj['errorList'] = []
@@ -1022,10 +1027,10 @@ class CommandProcessor(object):
         
         for (dataName,fmt) in iterItems:
             if dataName not in self.parsedDataDict:
-                self.recordError("Data element "+dataName+" not defined at time of return");
+                self.recordError("Data element "+dataName+" not defined at time of return")
                 continue
             if fmt not in availableDataFormats:
-                self.recordError("Format "+fmt+" not available");
+                self.recordError("Format "+fmt+" not available")
                 continue
             
             data = self.parsedDataDict[dataName]

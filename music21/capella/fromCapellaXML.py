@@ -47,7 +47,7 @@ try:
     reload(sys)
     sys.setdefaultencoding('utf-8') # @UndefinedVariable
 except NameError:
-    pass
+    pass  # python3
 sys.stdout = currentStdOut
 sys.stdin = currentStdIn
 sys.stderr = currentStdErr
@@ -698,7 +698,7 @@ class CapellaImporter(object):
         'F'
         >>> clefObject.line
         1
-        >>> clefObject.octaveShift
+        >>> clefObject.octaveChange
         1
         '''
         if 'clef' in clefSign._attrs:

@@ -81,12 +81,9 @@ from music21 import base
 from music21 import common
 from music21 import derivation
 from music21 import exceptions21
+#from music21.timespans.trees import ElementTree
 
-try:
-    from music21.ext import jsonpickle
-except:
-    pass
-
+from music21.ext import jsonpickle
 from music21.ext import six
 
 from music21 import environment
@@ -216,6 +213,7 @@ class StreamFreezer(StreamFreezeThawBase):
 
     '''
     def __init__(self, streamObj=None, fastButUnsafe=False, topLevel = True, streamIds = None):
+        StreamFreezeThawBase.__init__(self)
         # must make a deepcopy, as we will be altering Sites
         self.stream = None
         # clear all sites only if the top level.
@@ -295,7 +293,7 @@ class StreamFreezer(StreamFreezeThawBase):
             elif el.isSpanner:
                 # works like a whole new hierarchy... # no need for deepcopy
                 subSF = StreamFreezer(
-                    el.spannedElements,
+                    el.spannerStorage,
                     fastButUnsafe=True,
                     streamIds=self.streamIds,
                     topLevel=False,
@@ -391,7 +389,7 @@ class StreamFreezer(StreamFreezeThawBase):
                 if el.isStream:
                     self.recursiveClearSites(el)
                 if el.isSpanner:
-                    self.recursiveClearSites(el.spannedElements)
+                    self.recursiveClearSites(el.spannerStorage)
                 if el.isVariant:
                     self.recursiveClearSites(el._stream)
                 if hasattr(el, '_derivation'):
@@ -476,6 +474,7 @@ class StreamFreezer(StreamFreezeThawBase):
             e.removeLocationBySite(streamObj)
 
         streamObj._storedElementOffsetTuples = storedElementOffsetTuples
+        #streamObj._elementTree = None
         streamObj._elements = []
         streamObj._endElements = []
         streamObj._elementsChanged()
@@ -768,6 +767,7 @@ class StreamThawer(StreamFreezeThawBase):
 #    >>> #s.show('t')
     '''
     def __init__(self):
+        StreamFreezeThawBase.__init__(self)
         self.stream = None
 
     def teardownSerializationScaffold(self, streamObj = None):
@@ -801,7 +801,6 @@ class StreamThawer(StreamFreezeThawBase):
         streamObj.sites.add(None, 0.0)
 
         self.restoreStreamStatusClient(streamObj) # removing seems to create problems for jsonPickle with Spanners
-        
         allEls = self.findAllM21Objects(streamObj)
 
         for e in allEls:
@@ -815,8 +814,8 @@ class StreamThawer(StreamFreezeThawBase):
                 #    print el, el.offset, el.sites.siteDict
             elif e.isSpanner:
                 subSF = StreamThawer()
-                subSF.teardownSerializationScaffold(e.spannedElements)
-                e.spannedElements._elementsChanged()
+                subSF.teardownSerializationScaffold(e.spannerStorage)
+                e.spannerStorage._elementsChanged()
                 e._cache = {}
             elif e.isStream: 
                 self.restoreStreamStatusClient(e) # removing seems to create problems for jsonPickle with Spanners
@@ -875,6 +874,7 @@ class StreamThawer(StreamFreezeThawBase):
         {5.0} <music21.bar.Barline style=regular>
         '''
         if hasattr(streamObj, '_storedElementOffsetTuples'):
+            #streamObj._elementTree = ElementTree(source=streamObj)
             for e, offset in streamObj._storedElementOffsetTuples:
                 if offset != 'end':
                     streamObj._insertCore(offset, e)
@@ -1137,7 +1137,7 @@ class JSONFreezeThawBase(object):
         Traceback (most recent call last):
         JSONFreezerException: Cannot generate a new object from blah.NotAClass
         '''
-        import music21
+        import music21 # pylint: disable=redefined-outer-name
         idStrOrig = idStr
         if idStr.startswith('music21.'):
             idStr = idStr[8:]
@@ -1380,7 +1380,7 @@ class JSONFreezer(JSONFreezeThawBase):
             return True
         if isinstance(possiblyFreezeable, (list, tuple, dict)):
             return False
-        if six.PY2 and isinstance(possiblyFreezeable, (int, str, unicode, float)):
+        if six.PY2 and isinstance(possiblyFreezeable, (int, str, unicode, float)): # pylint: disable=undefined-variable
             return False
         elif six.PY3 and isinstance(possiblyFreezeable, (int, str, bytes, float)):
             return False 
@@ -1586,8 +1586,8 @@ class JSONFreezer(JSONFreezeThawBase):
           "__class__": "music21.note.Note", 
           "__version__": [
             2, 
-            0, 
-            0
+            ..., 
+            ...
           ]
         }
         '''

@@ -11,7 +11,6 @@
 """
 Methods for exporting music21 data as braille.
 
-
 This module was made in consultation with the manual "Introduction to Braille
 Music Transcription, Second Edition" by Mary Turner De Garmo, 2005. It is
 available from the Library of Congress `here <http://www.loc.gov/nls/music/>`_,
@@ -178,14 +177,12 @@ def metadataToString(music21Metadata):
     """
     >>> from music21.braille import translate
     >>> from music21 import corpus
-    >>> corelli = corpus.parse("corelli")
+    >>> corelli = corpus.parse("monteverdi/madrigal.3.1.rntxt")
     >>> corelli.getElementsByClass('Metadata')[0].__class__
     <class 'music21.metadata.Metadata'>
     >>> print(translate.metadataToString(corelli.getElementsByClass('Metadata')[0]))
-    Movement Name: [Movement 1]
-    Movement Number: 1
-    Number: 3
-    Title: Church Sonatas, Op. 3: Sonata I
+    Alternative Title: 3.1
+    Title: La Giovinetta Pianta
     """
     allBrailleLines = []
     for key in music21Metadata._workIds:

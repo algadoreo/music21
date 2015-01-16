@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-The music21 Framework is Copyright © 2008-2013 Michael Scott Cuthbert 
+The music21 Framework is Copyright © 2006-2015 Michael Scott Cuthbert 
 and the music21 Project
 
 (Michael Scott Cuthbert, principal investigator; cuthbert@mit.edu)
@@ -68,6 +68,7 @@ __all__ = [
     'ipython21',
     'languageExcerpts',
     'lily', 
+    'mei',
     'midi',
     'musedata',
     'musicxml', 
@@ -78,6 +79,7 @@ __all__ = [
     'search',
     'test',
     'theoryAnalysis',
+    'timespans',
     'trecento',
     'vexflow',
     'webapps', 

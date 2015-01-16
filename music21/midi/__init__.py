@@ -11,14 +11,6 @@
 #               Some parts of this module are in the Public Domain, see details.
 # License:      LGPL or BSD, see license.txt
 #-------------------------------------------------------------------------------
-
-__all__ = ['translate', 'realtime', 'percussion']
-
-import sys
-from music21.midi import realtime
-from music21.midi import percussion
-from music21.ext import six
-
 '''
 Objects and tools for processing MIDI data.  Converts from MIDI files to
 :class:`~music21.midi.MidiEvent`, :class:`~music21.midi.MidiTrack`, and
@@ -30,6 +22,12 @@ Note, etc., objects takes place in :ref:`moduleMidiTranslate`.
 This module uses routines from Will Ware's public domain midi.py library from 2001
 see http://groups.google.com/group/alt.sources/msg/0c5fc523e050c35e
 '''
+__all__ = ['translate', 'realtime', 'percussion']
+
+import sys
+from music21.midi import realtime
+from music21.midi import percussion
+from music21.ext import six
 
 import unittest
 import unicodedata
@@ -68,7 +66,6 @@ class MidiException(exceptions21.Music21Exception):
 def charToBinary(char):
     '''
     Convert a char into its binary representation. Useful for debugging. 
-    
     
     >>> midi.charToBinary('a')
     '01100001'
@@ -191,8 +188,6 @@ def getVariableLengthNumber(midiStr):
     '''
     # from http://faydoc.tripod.com/formats/mid.htm
     # This allows the number to be read one byte at a time, and when you see a msb of 0, you know that it was the last (least significant) byte of the number.
-    # additional reference here:
-    # http://253.ccarh.org/handout/vlv/
     summation = 0 
     i = 0 
     if six.PY3 and isinstance(midiStr, str):
@@ -503,9 +498,6 @@ class MidiEvent(object):
             self.sortOrder = -10
         if self.type == 'NOTE_OFF': # should come before pitch bend
             self.sortOrder = -20
-
-    def __cmp__(self, other): 
-        return cmp(self.time, other.time) 
     
     def __repr__(self): 
         if self.track == None:
@@ -781,10 +773,7 @@ class MidiEvent(object):
         else:
             # an uncaught message
             environLocal.printDebug(['got unknown midi event type', repr(x), 'charToBinary(midiStr[0])', charToBinary(midiStr[0]), 'charToBinary(midiStr[1])', charToBinary(midiStr[1])])
-
             raise MidiException("Unknown midi event type")
-            #return everything but the first character
-            return midiStr[1:] # 
 
 
     def getBytes(self): 
@@ -1319,9 +1308,12 @@ class Test(unittest.TestCase):
     def testBasicImport(self):
 
         directory = common.getPackageDir(relative=False, remapSep=os.sep)
+        fp = None
         for fp in directory:
             if fp.endswith('midi'):
                 break
+        if fp is None:
+            raise MidiException("No MIDI directory found!")
 
         dirLib = os.path.join(fp, 'testPrimitive')
         # a simple file created in athenacl
@@ -1408,9 +1400,12 @@ class Test(unittest.TestCase):
     def testInternalDataModel(self):
 
         directory = common.getPackageDir(relative=False, remapSep=os.sep)
+        fp = None
         for fp in directory:
             if fp.endswith('midi'):
                 break
+        if fp is None:
+            raise MidiException("No MIDI directory found!")
 
         dirLib = os.path.join(fp, 'testPrimitive')
         # a simple file created in athenacl
@@ -1598,9 +1593,12 @@ class Test(unittest.TestCase):
         from music21 import converter
 
         directory = common.getPackageDir(relative=False, remapSep=os.sep)
+        fp = None
         for fp in directory:
             if fp.endswith('midi'):
-                break
+                break   
+        if fp is None:
+            raise MidiException("No MIDI directory found!")
         dirLib = os.path.join(fp, 'testPrimitive')
         # a simple file created in athenacl
         fp = os.path.join(dirLib, 'test09.mid')

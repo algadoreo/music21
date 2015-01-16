@@ -10,8 +10,6 @@
 #               Project
 # License:      LGPL or BSD, see license.txt
 #------------------------------------------------------------------------------
-from __future__ import print_function
-
 '''
 The environment module describes an object for accessing and setting
 variables related to the user's music21 environment. Such variables include
@@ -22,6 +20,8 @@ and other settings.
 Additional documentation for and examples of using this module are found in
 :ref:`environment`.
 '''
+from __future__ import print_function
+
 import os
 import sys
 import tempfile
@@ -120,10 +120,9 @@ class LocalCorpusSettings(xmlnode.XMLNodeList):
     ### INITIALIZER ###
 
     def __init__(self, name=None):
-        xmlnode.XMLNode.__init__(self)
+        xmlnode.XMLNodeList.__init__(self)
         self._attr['name'] = name
         self._tag = 'localCorpusSettings'  # assumed for now
-        self.componentList = []  # list of LocalCorpusPath objects
 
     ### PRIVATE METHODS ###
 
@@ -165,9 +164,8 @@ class LocalCorporaSettings(xmlnode.XMLNodeList):
     ### INITIALIZER ###
 
     def __init__(self):
-        xmlnode.XMLNode.__init__(self)
+        xmlnode.XMLNodeList.__init__(self)
         self._tag = 'localCorporaSettings'
-        self.componentList = []
 
     ### PRIVATE METHODS ###
 
@@ -221,7 +219,8 @@ class SettingsHandler(xml.sax.ContentHandler):
 
     ### INITIALIZER ###
 
-    def __init__(self, tagLib=None):
+    def __init__(self):
+        xml.sax.ContentHandler.__init__(self)
         self._characters = ''
         self._objectStack = []
         self._settings = None
@@ -486,7 +485,7 @@ class _EnvironmentCore(object):
         self._ref['musescoreDirectPNGPath'] = None
         self._ref['showFormat'] = 'musicxml'
         self._ref['writeFormat'] = 'musicxml'
-        self._ref['ipythonShowFormat'] = 'ipython.vexflow'
+        self._ref['ipythonShowFormat'] = 'ipython.lilypond.png'
 
         self._ref['autoDownload'] = 'ask'
         self._ref['debug'] = 0
@@ -775,7 +774,7 @@ class _EnvironmentCore(object):
 
                 webbrowser.open(filePath)
                 return
-            except:
+            except ImportError:
                 print('Cannot open webbrowser, sorry. Go to file://{}'.format(
                     filePath))
         if app is not None:
@@ -799,7 +798,7 @@ class _EnvironmentCore(object):
                     with open(filePath, 'r') as f:
                         for line in f:
                             print(line, end="")
-                        print
+                        print("")
                     return                    
                 else:
                     raise EnvironmentException(
@@ -1590,7 +1589,7 @@ class Test(unittest.TestCase):
   <preference name="debug" value="0"/>
   <preference name="directoryScratch"/>
   <preference name="graphicsPath" value="/Applications/Preview.app"/>
-  <preference name="ipythonShowFormat" value="ipython.vexflow"/>
+  <preference name="ipythonShowFormat" value="ipython.lilypond.png"/>
   <preference name="lilypondBackend" value="ps"/>
   <preference name="lilypondFormat" value="pdf"/>
   <preference name="lilypondPath" value="/Applications/Lilypond.app/Contents/Resources/bin/lilypond"/>
@@ -1626,7 +1625,7 @@ class Test(unittest.TestCase):
   <preference name="debug" value="0"/>
   <preference name="directoryScratch"/>
   <preference name="graphicsPath" value="/Applications/Preview.app"/>
-  <preference name="ipythonShowFormat" value="ipython.vexflow"/>
+  <preference name="ipythonShowFormat" value="ipython.lilypond.png"/>
   <preference name="lilypondBackend" value="ps"/>
   <preference name="lilypondFormat" value="pdf"/>
   <preference name="lilypondPath" value="/Applications/Lilypond.app/Contents/Resources/bin/lilypond"/>
@@ -1683,7 +1682,7 @@ class Test(unittest.TestCase):
   <preference name="debug" value="0"/>
   <preference name="directoryScratch"/>
   <preference name="graphicsPath" value="/Applications/Preview.app"/>
-  <preference name="ipythonShowFormat" value="ipython.vexflow"/>
+  <preference name="ipythonShowFormat" value="ipython.lilypond.png"/>
   <preference name="lilypondBackend" value="ps"/>
   <preference name="lilypondFormat" value="pdf"/>
   <preference name="lilypondPath" value="/Applications/Lilypond.app/Contents/Resources/bin/lilypond"/>

@@ -7,7 +7,7 @@
 # Authors:      Michael Scott Cuthbert
 #               Christopher Ariza
 #
-# Copyright:    Copyright © 2009-2014 Michael Scott Cuthbert and the music21 Project
+# Copyright:    Copyright © 2009-2015 Michael Scott Cuthbert and the music21 Project
 # License:      LGPL or BSD, see license.txt
 #-------------------------------------------------------------------------------
 '''
@@ -63,7 +63,11 @@ from music21 import environment
 _MOD = 'converter/__init__.py'
 environLocal = environment.Environment(_MOD)
 
-
+# use the faster library if possible (won't be possible on Jython, PyPy, etc.)
+try:
+    import xml.etree.cElementTree as ETree
+except ImportError:
+    import xml.etree.ElementTree as ETree
 
 
 
@@ -87,21 +91,21 @@ class ArchiveManager(object):
     archived file collection, such as a .zip or or .mxl file. This will return the 
     data from the archive.
     
-    >>> fnCorpus = corpus.getWork('opus18no1/movement3', fileExtensions=('.xml',))
+    >>> fnCorpus = corpus.getWork('bwv66.6', fileExtensions=('.xml',))
     
     This is likely a unicode string
     
     >>> #_DOCS_SHOW fnCorpus
-    >>> '/Users/cuthbert/Documents/music21/corpus/beethoven/opus18no1/movement3.mxl' #_DOCS_HIDE
-    '/Users/cuthbert/Documents/music21/corpus/beethoven/opus18no1/movement3.mxl'
+    >>> u'/Users/cuthbert/git/music21base/music21/corpus/bach/bwv66.6.mxl' #_DOCS_HIDE
+    u'/Users/cuthbert/git/music21base/music21/corpus/bach/bwv66.6.mxl'
     >>> am = converter.ArchiveManager(fnCorpus)
     >>> am.isArchive()
     True
     >>> am.getNames()
-    ['movement3.xml', 'META-INF/container.xml']
+    ['bwv66.6.xml', 'META-INF/container.xml']
     >>> data = am.getData()
     >>> data[0:70]
-    '<?xml version="1.0" standalone="no"?>\r\n<!DOCTYPE score-partwise PUBLIC'
+    '<?xml version="1.0" encoding="UTF-8"?>\r<!DOCTYPE score-partwise PUBLIC'
     '''
     # for info on mxl files, see
     # http://www.recordare.com/xml/compressed-mxl.html
@@ -300,8 +304,8 @@ _deregisteredSubconverters = [] # default subconverters to skip
 
 def _resetSubconverters():
     '''hidden method to reset state'''
-    global _registeredSubconverters
-    global _deregisteredSubconverters
+    global _registeredSubconverters # pylint: disable=global-statement
+    global _deregisteredSubconverters # pylint: disable=global-statement
     _registeredSubconverters = []
     _deregisteredSubconverters = []
 
@@ -361,8 +365,8 @@ def unregisterSubconverter(removeSubconverter):
     >>> converter._resetSubconverters() #_DOCS_HIDE
 
     '''
-    global _registeredSubconverters
-    global _deregisteredSubconverters
+    global _registeredSubconverters # pylint: disable=global-statement
+    global _deregisteredSubconverters # pylint: disable=global-statement
     if removeSubconverter == 'all':
         _registeredSubconverters = []
         _deregisteredSubconverters = ['all']
@@ -456,7 +460,7 @@ class Converter(object):
         '''
         from music21 import freezeThaw
         if not os.path.exists(fp):
-            raise ConverterFileException('no such file eists: %s' % fp)
+            raise ConverterFileException('no such file exists: %s' % fp)
         useFormat = format
 
         if useFormat is None:
@@ -467,7 +471,7 @@ class Converter(object):
             environLocal.printDebug("Loading Pickled version")
             try:
                 self._thawedStream = thaw(fpPickle, zipType='zlib')
-            except:
+            except freezeThaw.FreezeThawException:
                 environLocal.warn("Could not parse pickle, %s ...rewriting" % fpPickle)
                 os.remove(fpPickle)
                 self.parseFileNoPickle(fp, number, format, forceSource)
@@ -511,7 +515,15 @@ class Converter(object):
 
             if useFormat is not None:
                 pass
-            elif dataStrMakeStr.startswith('<?xml') or dataStrMakeStr.lower().startswith('musicxml:'):
+            elif dataStrMakeStr.startswith('<?xml'):
+                # is it MEI or MusicXML?
+                if '<mei' in dataStrMakeStr:
+                    useFormat = 'mei'
+                else:
+                    useFormat = 'musicxml'
+            elif dataStrMakeStr.startswith('mei:') or dataStrMakeStr.lower().startswith('mei:'):
+                useFormat = 'mei'
+            elif dataStrMakeStr.startswith('musicxml:') or dataStrMakeStr.lower().startswith('musicxml:'):
                 useFormat = 'musicxml'
             elif dataStrMakeStr.startswith('MThd') or dataStrMakeStr.lower().startswith('midi:'):
                 useFormat = 'midi'
@@ -542,9 +554,7 @@ class Converter(object):
         Note that this checks the user Environment
         `autoDownlaad` setting before downloading.
 
-        TODO: replace with free version of jeanieLightBrownHair
-
-        >>> #_DOCS_SHOW jeanieLightBrownURL = 'http://www.wikifonia.org/node/4391'
+        >>> #_DOCS_SHOW jeanieLightBrownURL = 'https://github.com/cuthbertLab/music21/raw/master/music21/corpus/leadSheet/fosterBrownHair.mxl'
         >>> c = converter.Converter()
         >>> #_DOCS_SHOW c.parseURL(jeanieLightBrownURL)
         >>> #_DOCS_SHOW jeanieStream = c.stream
@@ -557,12 +567,6 @@ class Converter(object):
             message += "environment.set('autoDownload', 'allow')"
             message = message.format(autoDownload)
             raise ConverterException(message)
-
-        # If we give the URL to a Wikifonia main page,
-        # redirect to musicxml page:
-        matchedWikifonia = re.search("wikifonia.org/node/(\d+)", url)
-        if matchedWikifonia:
-            url = 'http://static.wikifonia.org/' + matchedWikifonia.group(1) + '/musicxml.xml'
 
         # this format check is here first to see if we can find the format
         # in the url; if forcing a format we do not need this
@@ -625,23 +629,23 @@ class Converter(object):
 
         >>> converter._resetSubconverters() #_DOCS_HIDE
         '''
-        subConverters = []
+        subConverterList = []
         if len(_registeredSubconverters) > 0:
             for reg in _registeredSubconverters:
                 #print reg
-                subConverters.append(reg)
+                subConverterList.append(reg)
 
         if len(_deregisteredSubconverters) > 0 and _deregisteredSubconverters[0] == 'all':
             pass
         else:
-            subConverters.extend(self.defaultSubconverters())
+            subConverterList.extend(self.defaultSubconverters())
             if len(_deregisteredSubconverters) > 0:
                 for unreg in _deregisteredSubconverters:
                     try:
-                        subConverters.remove(unreg)
+                        subConverterList.remove(unreg)
                     except ValueError:
                         pass
-        return subConverters
+        return subConverterList
 
     def defaultSubconverters(self):
         '''
@@ -659,6 +663,7 @@ class Converter(object):
         <class 'music21.converter.subConverters.ConverterHumdrum'>
         <class 'music21.converter.subConverters.ConverterIPython'>
         <class 'music21.converter.subConverters.ConverterLilypond'>
+        <class 'music21.converter.subConverters.ConverterMEI'>
         <class 'music21.converter.subConverters.ConverterMidi'>
         <class 'music21.converter.subConverters.ConverterMuseData'>
         <class 'music21.converter.subConverters.ConverterMusicXML'>
@@ -696,6 +701,7 @@ class Converter(object):
         ('ipython', <class 'music21.converter.subConverters.ConverterIPython'>)
         ('lily', <class 'music21.converter.subConverters.ConverterLilypond'>)
         ('lilypond', <class 'music21.converter.subConverters.ConverterLilypond'>)
+        ('mei', <class 'music21.converter.subConverters.ConverterMEI'>)
         ('midi', <class 'music21.converter.subConverters.ConverterMidi'>)
         ('musedata', <class 'music21.converter.subConverters.ConverterMuseData'>)
         ('musicxml', <class 'music21.converter.subConverters.ConverterMusicXML'>)
@@ -1363,29 +1369,6 @@ class Test(unittest.TestCase):
         self.assertEqual(len(ts), 4)
 
 
-        a = corpus.parse('mozart/k156/movement4')
-
-        # violin part
-        clefs = a.parts[0].flat.getElementsByClass(clef.Clef)
-        self.assertEqual(len(clefs), 1)
-        self.assertEqual(clefs[0].sign, 'G')
-
-        # viola
-        clefs = a.parts[2].flat.getElementsByClass(clef.Clef)
-        self.assertEqual(len(clefs), 1)
-        self.assertEqual(clefs[0].sign, 'C')
-
-        # violoncello
-        clefs = a.parts[3].flat.getElementsByClass(clef.Clef)
-        self.assertEqual(len(clefs), 1)
-        self.assertEqual(clefs[0].sign, 'F')
-
-        # check time signatures
-        # there are
-        ts = a.parts[0].flat.getElementsByClass(meter.TimeSignature)
-        self.assertEqual(len(ts), 1)
-
-
     def testConversionMXArticulations(self):
         from music21 import note
         from music21.musicxml import testPrimitive
@@ -1481,27 +1464,30 @@ class Test(unittest.TestCase):
 
     def testConversionMXInstrument(self):
         from music21 import corpus
-        s = corpus.parse('beethoven/opus18no1/movement3.xml')
+        s = corpus.parse('schumann_clara/opus17', 3)
         #s.show()
         is1 = s.parts[0].flat.getElementsByClass('Instrument')
         self.assertEqual(len(is1), 1)
+        #self.assertIn('Violin', is1[0].classes)
         is2 = s.parts[1].flat.getElementsByClass('Instrument')
         self.assertEqual(len(is2), 1)
-
+        #self.assertIn('Violoncello', is1[0].classes)
         is3 = s.parts[2].flat.getElementsByClass('Instrument')
         self.assertEqual(len(is3), 1)
-
-        is4 = s.parts[3].flat.getElementsByClass('Instrument')
-        self.assertEqual(len(is4), 1)
-
+        #self.assertIn('Piano', is1[0].classes)
 
 
     def testConversionMidiBasic(self):
         directory = common.getPackageDir(relative=False, remapSep=os.sep)
+        fp = None
         for fp in directory:
             if fp.endswith('midi'):
                 break
-
+        else:
+            raise ConverterException('Could not find a directory with MIDI')
+        if fp is None:
+            raise ConverterException('Could not find a directory with MIDI')
+             
         dirLib = os.path.join(fp, 'testPrimitive')
         # a simple file created in athenacl
         fp = os.path.join(dirLib, 'test01.mid')
@@ -1662,23 +1648,9 @@ class Test(unittest.TestCase):
 
 
     def testConversionMusedata(self):
-
-        from music21.musedata import testFiles
-
-        cmd = subConverters.ConverterMuseData()
-        cmd.parseData(testFiles.bach_cantata5_mvmt3)
-        unused_s = cmd.stream
-        #s.show()
-
-        # test data id
-        s = parse(testFiles.bach_cantata5_mvmt3)
-        self.assertEqual(s.metadata.title, 'Wo soll ich fliehen hin')
-        self.assertEqual(len(s.parts), 3)
-
-
-        fp = os.path.join(common.getSourceFilePath(), 'musedata', 'testZip.zip')
+        fp = os.path.join(common.getSourceFilePath(), 'musedata', 'testPrimitive', 'test01')
         s = parse(fp)
-        self.assertEqual(len(s.parts), 4)
+        self.assertEqual(len(s.parts), 5)
         #s.show()
 
 
@@ -1697,17 +1669,17 @@ class Test(unittest.TestCase):
         self.assertEqual(post[:38], '<?xml version="1.0" encoding="UTF-8"?>')
         self.assertEqual(af.getNames(), ['musicXML.xml', 'META-INF/', 'META-INF/container.xml'])
 
-        # test from a file that ends in zip
-        # note: this is a stage1 file!
-        fp = os.path.join(common.getSourceFilePath(), 'musedata', 'testZip.zip')
-        af = ArchiveManager(fp)
-        # for now, only support zip
-        self.assertEqual(af.archiveType, 'zip')
-        self.assertEqual(af.isArchive(), True)
-        self.assertEqual(af.getNames(), ['01/', '01/04', '01/02', '01/03', '01/01'] )
-
-        # returns a list of strings
-        self.assertEqual(af.getData(dataFormat='musedata')[0][:30], '378\n1080  1\nBach Gesells\nchaft')
+#         # test from a file that ends in zip
+#         # note: this is a stage1 file!
+#         fp = os.path.join(common.getSourceFilePath(), 'musedata', 'testZip.zip')
+#         af = ArchiveManager(fp)
+#         # for now, only support zip
+#         self.assertEqual(af.archiveType, 'zip')
+#         self.assertEqual(af.isArchive(), True)
+#         self.assertEqual(af.getNames(), ['01/', '01/04', '01/02', '01/03', '01/01'] )
+# 
+#         # returns a list of strings
+#         self.assertEqual(af.getData(dataFormat='musedata')[0][:30], '378\n1080  1\nBach Gesells\nchaft')
 
 
         #mdw = musedataModule.MuseDataWork()
@@ -1726,6 +1698,29 @@ class Test(unittest.TestCase):
                 'testPrimitive', 'test01')
         cmd = subConverters.ConverterMuseData()
         cmd.parseFile(fp)
+
+    def testMEIvsMX(self):
+        '''
+        Ensure Converter.parseData() distinguishes between a string with MEI data and a string with
+        MusicXML data. The "subConverter" module is mocked out because we don't actually need to
+        test the conversion process in this unit test.
+        '''
+        # These strings aren't valid documents, but they are enough to pass the detection we're
+        # testing in parseData(). But it does mean we'll be testing in a strange way.
+        meiString = '<?xml version="1.0" encoding="UTF-8"?><mei><note/></mei>'
+        mxlString = '<?xml version="1.0" encoding="UTF-8"?><score-partwise><note/></score-partwise>'
+
+        # The "mei" module raises an MeiElementError with "meiString," so as long as that's raised,
+        # we know that parseData() chose correctly.
+        from music21.mei.base import MeiElementError
+        testConv = Converter()
+        self.assertRaises(MeiElementError, testConv.parseData, meiString)
+
+        # The ConverterMusicXML raises a SubConverterException with "mxlString," so as long as
+        # that's raised, we know that parseData()... well at least that it didn't choose MEI.
+        from music21.converter.subConverters import SubConverterException
+        testConv = Converter()
+        self.assertRaises(SubConverterException, testConv.parseData, mxlString)
 
 
 #-------------------------------------------------------------------------------

@@ -6,7 +6,7 @@
 # Authors:      Michael Scott Cuthbert
 #               Christopher Ariza
 #
-# Copyright:    Copyright © 2008-2014 Michael Scott Cuthbert and the music21
+# Copyright:    Copyright © 2006-2015 Michael Scott Cuthbert and the music21
 #               Project
 # License:      LGPL or BSD, see license.txt
 #------------------------------------------------------------------------------
@@ -32,7 +32,7 @@ available after importing music21.
 ::
 
     >>> music21.VERSION_STR
-    '2.0.0'
+    '2.0.1'
 
 Alternatively, after doing a complete import, these classes are available
 under the module "base":
@@ -290,7 +290,7 @@ class Music21Object(object):
 
     # documentation for all attributes (not properties or methods)
     _DOC_ATTR = {
-        'id': 'A unique identification string (not to be confused with the default `.id()` method.',
+        'id': 'A unique identification string; not to be confused with the default `.id()` method. However, if not set, will return the `id()` number',
         'groups': 'An instance of a :class:`~music21.base.Group` object which describes arbitrary `Groups` that this object belongs to.',
         'isStream': 'Boolean value for quickly identifying :class:`~music21.stream.Stream` objects (False by default).',
         'isSpanner': 'Boolean value for quickly identifying :class:`~music21.spanner.Spanner` objects (False by default).',
@@ -316,13 +316,13 @@ class Music21Object(object):
 
             >>> ks = key.KeySignature(3)
             >>> ks.classSortOrder
-            1
+            2
 
 
             New classes can define their own default classSortOrder
 
             >>> class ExampleClass(base.Music21Object):
-            ...     classSortOrderDefault = 5
+            ...     classSortOrder = 5
             ...
             >>> ec1 = ExampleClass()
             >>> ec1.classSortOrder
@@ -475,6 +475,9 @@ class Music21Object(object):
         Given a class filter list (a list or tuple must be submitted),
         which may have strings or class objects, determine
         if this class is of the provided classes or a subclasses.
+        
+        NOTE: this is a performance critical operation
+        for performance, only accept lists or tuples
         '''
         # NOTE: this is a performance critical operation
         # for performance, only accept lists or tuples
@@ -651,7 +654,6 @@ class Music21Object(object):
             except AttributeError:
                 # not sure of passing here is the best action
                 environLocal.printDebug(['findAttributeInHierarchy call raised attribute error for attribute:', attrName])
-                pass
             if found is None:
                 found = self.activeSite.findAttributeInHierarchy(attrName)
         return found
@@ -1209,7 +1211,7 @@ class Music21Object(object):
             elif len(verticality.overlapTimespans) > 0:
                 return verticality.overlapTimespans[0].element
 
-        def findElInTimespanCollection(ts, offsetStart):
+        def findElInTimespanTree(ts, offsetStart):
             if getElementMethod == 'getElementAtOrBefore':
                 verticality = ts.getVerticalityAtOrBefore(offsetStart)
             elif getElementMethod == 'getElementBeforeOffset':
@@ -1221,17 +1223,17 @@ class Music21Object(object):
                     return element
             return None
 
-        def findElInTimespanColNoRecurse(ts, offsetStart):
+        def findElInTimespanTreeNoRecurse(ts, offsetStart):
             # goes through each, but should be fast because
             # only contains containers and elements with the
             # proper classes...
             if getElementMethod == 'getElementAtOrBefore':
                 offsetStart += 0.0001
             while offsetStart is not None: # redundant, but useful...
-                offsetStart = ts.getStartOffsetBefore(offsetStart)
+                offsetStart = ts.getOffsetBefore(offsetStart)
                 if offsetStart is None:
                     return None
-                startTimespans = ts.findTimespansStartingAt(offsetStart)
+                startTimespans = ts.elementsStartingAt(offsetStart)
                 for element in startTimespans:
                     if hasattr(element, 'source'):
                         continue
@@ -1249,12 +1251,12 @@ class Music21Object(object):
             searchType = searchPlace[2]
             if searchType == 'elementsOnly' or searchType == 'elementsFirst':
                 tsNotFlat = site.asTimespans(classList=className, recurse=False)
-                el = findElInTimespanColNoRecurse(tsNotFlat, offsetStart)
+                el = findElInTimespanTreeNoRecurse(tsNotFlat, offsetStart)
                 if el is not None:
                     return el
             if searchType != 'elementsOnly':
                 tsFlat = site.asTimespans(classList=className, recurse=True)
-                el = findElInTimespanCollection(tsFlat, offsetStart)
+                el = findElInTimespanTree(tsFlat, offsetStart)
                 if el is not None:
                     return el
 
@@ -1395,27 +1397,27 @@ class Music21Object(object):
         if classFilterList is not None:
             if not common.isListLike(classFilterList):
                 classFilterList = [classFilterList]
-        sites = self.sites.getSites(excludeNone=True)
+        selfSites = self.sites.getSites(excludeNone=True)
         match = None
 
         # store ids of of first sites; might need to take flattened version
         firstSites = []
-        for s in sites:
+        for s in selfSites:
             firstSites.append(id(s))
         # this might use get(sortByCreationTime)
-        #environLocal.printDebug(['sites:', sites])
+        #environLocal.printDebug(['sites:', selfSites])
         #siteSites = []
 
         # first, look in sites that are do not req flat presentation
         # these do not need to be flattened b/c we know the self is in these
         # streams
         memo = {}
-        while len(sites) > 0:
+        while len(selfSites) > 0:
             #environLocal.printDebug(['looking at siteSites:', s])
             # check for duplicated sites; may be possible
-            s = sites.pop(0) # take the first off of sites
+            s = selfSites.pop(0) # take the first off of sites
             try:
-                memo[id(s)]
+                unused = memo[id(s)] 
                 continue # if in dict, do not continue
             except KeyError: # if not in dict
                 memo[id(s)] = None # add to dict, value does not matter
@@ -1429,7 +1431,7 @@ class Music21Object(object):
                 else: # do not flatten first sites
                     target = s
                     # add semi flat to sites, as we have not searched it yet
-                    sites.append(s.semiFlat)
+                    selfSites.append(s.semiFlat)
                 firstSites.pop(firstSites.index(id(s))) # remove for efficiency
             # if flat, do not get semiFlat
             # note that semiFlat streams are marked as isFlat=True
@@ -1445,7 +1447,7 @@ class Music21Object(object):
                 return match
             # append new sites to end of queue
             # these are the sites of s, not target
-            sites += s.sites.getSites(excludeNone=True)
+            selfSites += s.sites.getSites(excludeNone=True)
         # if cannot be found, return None
         return None
 
@@ -1831,13 +1833,18 @@ class Music21Object(object):
         '''
         if useSite is False: # False or a Site; since None is a valid site, default is False
             useSite = self.activeSite
+
         if useSite is None:                
             foundOffset = self.offset
         else:
             try:
                 foundOffset = self.sites.siteDict[id(useSite)].offset  # allows for text offsets
             except KeyError:
-                foundOffset = self.getOffsetBySite(useSite)
+                try:
+                    foundOffset = self.getOffsetBySite(useSite)
+                except SitesException:
+                    #environLocal.warn(r)  # activeSite may have vanished! or does not have the element
+                    foundOffset = self.getOffsetBySite(None)
                 
         if foundOffset == 'highestTime':
             offset = 0.0
@@ -2261,9 +2268,13 @@ class Music21Object(object):
         if fmt is None: # get setting in environment
             if common.runningUnderIPython():
                 try:
+                    # TODO: when everyone has updated, then remove these lines...
+                    environLocal['ipythonShowFormat'] = 'ipython.lilypond.png'
+                    environLocal.write()
+                    # end delete
                     fmt = environLocal['ipythonShowFormat']
                 except environment.EnvironmentException:
-                    fmt = 'ipython.vexflow'
+                    fmt = 'ipython.lilypond.png'
             else:
                 fmt = environLocal['showFormat']
         elif fmt.startswith('.'):
@@ -2408,7 +2419,7 @@ class Music21Object(object):
 
         if hasattr(e, 'expressions'):
             tempExpressions = e.expressions
-            e.expressions = []
+            e.expressions = [] # pylint: disable=attribute-defined-outside-init
             eRemain.expressions = []
             for thisExpression in tempExpressions:
                 if hasattr(thisExpression, 'tieAttach'):
@@ -2461,7 +2472,7 @@ class Music21Object(object):
                     forceEndTieType = 'continue'
                     # keep continue if already set
             else:
-                e.tie = tie.Tie('start') # need a tie object
+                e.tie = tie.Tie('start') # need a tie object # pylint: disable=attribute-defined-outside-init
 
             eRemain.tie = tie.Tie(forceEndTieType)
 
@@ -2786,7 +2797,7 @@ class Music21Object(object):
                 except SitesException:
                     try:
                         offsetLocal = self.offset
-                    except:
+                    except AttributeError:
                         offsetLocal = 0.0
 
             else: # hope that we get the right one
@@ -3600,8 +3611,7 @@ class Test(unittest.TestCase):
         sInner.append(n)
         sOuter.append(sInner)
 
-        tss = sOuter.asTimespans(classList=(sInner.classes[0],), recurse='semiFlat')
-        tss
+        unused_tss = sOuter.asTimespans(classList=(sInner.classes[0],), recurse='semiFlat') # @UnusedVariable
 
         # append clef to outer stream
         sOuter.insert(0, clef.AltoClef())
@@ -4035,7 +4045,8 @@ class Test(unittest.TestCase):
     def testElementWrapperOffsetAccess(self):
         from music21 import stream, meter
         from music21 import base
-        class Mock(object): pass
+        class Mock(object): 
+            pass
 
         s = stream.Stream()
         s.append(meter.TimeSignature('fast 6/8'))
@@ -4058,8 +4069,9 @@ class Test(unittest.TestCase):
     def testGetActiveSiteTimeSignature(self):
         from music21 import base
         from music21 import stream, meter
-        class Wave_read(object): #_DOCS_HIDE
-            def getnchannels(self): return 2 #_DOCS_HIDE
+        class Wave_read(object): 
+            def getnchannels(self): 
+                return 2
 
         s = stream.Stream()
         s.append(meter.TimeSignature('fast 6/8'))
@@ -4354,38 +4366,43 @@ def mainTest(*testClasses, **kwargs):
 
     runAllTests = True
 
-    # start with doc tests, then add unit tests
+
+    failFast = bool(kwargs.get('failFast', True))
+    if failFast:
+        optionflags = (
+            doctest.ELLIPSIS |
+            doctest.NORMALIZE_WHITESPACE |
+            doctest.REPORT_ONLY_FIRST_FAILURE
+            )
+    else:
+        optionflags = (
+            doctest.ELLIPSIS |
+            doctest.NORMALIZE_WHITESPACE
+            )
+    
+    globs = None
     if ('noDocTest' in testClasses or 'noDocTest' in sys.argv
         or 'nodoctest' in sys.argv):
+        skipDoctest = True
+    else:
+        skipDoctest = False
+
+    # start with doc tests, then add unit tests
+    if skipDoctest:
         # create a test suite for storage
         s1 = unittest.TestSuite()
     else:
         # create test suite derived from doc tests
         # here we use '__main__' instead of a module
-        failFast = bool(kwargs.get('failFast', True))
-        if failFast:
-            optionflags = (
-                doctest.ELLIPSIS |
-                doctest.NORMALIZE_WHITESPACE |
-                doctest.REPORT_ONLY_FIRST_FAILURE
-                )
-        else:
-            optionflags = (
-                doctest.ELLIPSIS |
-                doctest.NORMALIZE_WHITESPACE
-                )
         if 'moduleRelative' in testClasses or 'moduleRelative' in sys.argv:
-            s1 = doctest.DocTestSuite(
-                '__main__',
-                optionflags=optionflags,
-                )
+            pass
         else:
             globs = __import__('music21').__dict__.copy()
-            s1 = doctest.DocTestSuite(
-                '__main__',
-                globs=globs,
-                optionflags=optionflags,
-                )
+        s1 = doctest.DocTestSuite(
+            '__main__',
+            globs=globs,
+            optionflags=optionflags,
+            )
 
     verbosity = 1
     if 'verbose' in testClasses or 'verbose' in sys.argv:
@@ -4432,32 +4449,21 @@ def mainTest(*testClasses, **kwargs):
             s2 = unittest.defaultTestLoader.loadTestsFromTestCase(t)
             s1.addTests(s2)
 
+    ### Add _DOC_ATTR tests...
+    if not skipDoctest:
+        import inspect
+        stacks = inspect.stack()
+        if len(stacks) > 1:
+            outerFrameTuple = stacks[1]
+        else:
+            outerFrameTuple = stacks[0]
+        outerFrame = outerFrameTuple[0]
+        outerFilename = outerFrameTuple[1]
+        localVariables = list(outerFrame.f_locals.values())
+        common.addDocAttrTestsToSuite(s1, localVariables, outerFilename, globs, optionflags)
 
     if runAllTests is True:
-        if six.PY3: # correct "M21Exception" to "...M21Exception"
-            for dtc in s1: # Suite to DocTestCase
-                if hasattr(dtc, '_dt_test'):
-                    dt = dtc._dt_test # DocTest
-                    for example in dt.examples: # fix Traceback exception differences Py2 to Py3
-                        if example.exc_msg is not None and len(example.exc_msg) > 0:
-                            example.exc_msg = "..." + example.exc_msg[1:]
-                        elif (example.want is not None and
-                                example.want.startswith('u\'')):
-                                    # probably a unicode example:
-                                    # simplistic, since (u'hi', u'bye')
-                                    # won't be caught, but saves a lot of anguish
-                                example.want = example.want[1:]
-        elif six.PY2: #
-            for dtc in s1: # Suite to DocTestCase
-                if hasattr(dtc, '_dt_test'):
-                    dt = dtc._dt_test # DocTest
-                    for example in dt.examples: # fix Traceback exception differences Py2 to Py3
-                        if (example.want is not None and
-                                example.want.startswith('b\'')):
-                                    # probably a unicode example:
-                                    # simplistic, since (b'hi', b'bye')
-                                    # won't be caught, but saves a lot of anguish
-                                example.want = example.want[1:]
+        common.fixTestsForPy2and3(s1)
                                     
         runner = unittest.TextTestRunner()
         runner.verbosity = verbosity

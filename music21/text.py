@@ -6,7 +6,7 @@
 # Authors:      Michael Scott Cuthbert
 # Authors:      Christopher Ariza
 #
-# Copyright:    Copyright © 2009-2012 Michael Scott Cuthbert and the music21 Project
+# Copyright:    Copyright © 2009-2012, 2015 Michael Scott Cuthbert and the music21 Project
 # License:      LGPL or BSD, see license.txt
 #-------------------------------------------------------------------------------
 '''
@@ -96,9 +96,36 @@ def assembleLyrics(streamIn, lineNumber=1):
                 raise Exception('no known Text syllabic setting: %s' % lyricObj.syllabic)
     return ' '.join(words)
         
+def assembleAllLyrics(streamIn, maxLyrics = 10, lyricSeparation='\n'):
+    r'''
+    Concatenate all Lyrics text from a stream. The Stream is automatically flattened. 
+
+    uses assembleLyrics to do the heavy work.
+    
+    maxLyrics just determines how many times we should parse through the score, since it is
+    not easy to determine what the maximum number of lyrics exist in the score.  
+
+    Here is a demo with one note and five lyrics.
+
+    >>> f = corpus.parse('demos/multiple-verses.xml')
+    >>> l = text.assembleAllLyrics(f)
+    >>> l
+    u'\n1. First\n2. Second\n3. Third\n4. Fourth\n5. Fifth'
+    '''
+    lyrics = ''
+    for i in range(1, maxLyrics):
+        l = assembleLyrics(streamIn, i)
+        if l != '':
+            lyrics += lyricSeparation + l
+    return lyrics
+
+
+
 
 def prependArticle(src, language=None):
-    '''Given a text string, if an article is found in a trailing position with a comma, place the article in front and remove the comma. 
+    '''
+    Given a text string, if an article is found in a trailing position with a comma, 
+    place the article in front and remove the comma. 
 
     
     >>> text.prependArticle('Ale is Dear, The')
@@ -266,7 +293,7 @@ class TextFormat(object):
         if value is not None:
             try:
                 value = float(value)
-            except (ValueError):
+            except ValueError:
                 raise TextFormatException('Not a supported size: %s' % value)
         self._size = value
 
@@ -289,7 +316,7 @@ class TextFormat(object):
             # convert to number
             try:
                 value = float(value)
-            except (ValueError):
+            except ValueError:
                 raise TextFormatException('Not a supported size: %s' % value)
 
         self._letterSpacing = value
@@ -363,9 +390,10 @@ class TextBox(base.Music21Object, TextFormat):
 
         # the text string to be displayed; not that line breaks
         # are given in the xml with this non-printing character: (#)
+        self._content = None
         self.content = content   # use property
 
-        self._page = 1; # page one is deafault
+        self._page = 1 # page one is deafault
         self._positionDefaultX = x    
         self._positionDefaultY = y
         self._alignVertical = 'top'
@@ -591,9 +619,8 @@ class LanguageDetector(object):
             langCode = self.mostLikelyLanguage(excerpt)
             for i in range(len(self.languageCodes)):
                 if self.languageCodes[i] == langCode:
-                    return i+1
-            else:
-                raise TextException("got a language that was not in the codes; should not happen")
+                    return i+1            
+            raise TextException("got a language that was not in the codes; should not happen")
 
 #-------------------------------------------------------------------------------
 class Trigram(object):
@@ -658,7 +685,7 @@ class Trigram(object):
             for line in excerpt:
                 if six.PY2:
                     try:
-                        line = unicode(line, 'utf8') # just in case
+                        line = unicode(line, 'utf8') # just in case # pylint: disable=undefined-variable
                     except (UnicodeDecodeError, NameError): # no unicode in Py3
                         continue # skip this line
                 for letter in line.strip() + u' ':
@@ -776,9 +803,7 @@ class Test(unittest.TestCase):
 
 
     def testLanguageDetector(self):
-        from music21 import corpus
         ld = LanguageDetector()
-        ld.trigrams
         #print ld.trigrams['fr'] - ld.trigrams['it'] 
         #print ld.trigrams['fr'] - ld.trigrams['de'] 
         #print ld.trigrams['fr'] - ld.trigrams['cn'] 
@@ -791,11 +816,12 @@ class Test(unittest.TestCase):
         self.assertEqual('en', ld.mostLikelyLanguage(u"hello friends, this is a test of the ability of language detector to tell what language I am writing in."))
         self.assertEqual('it', ld.mostLikelyLanguage(u"ciao amici! cosÃ¬ trovo in quale lingua ho scritto questo passaggio. Spero che troverÃ² che Ã¨ stata scritta in italiano"))
 
-        messiahGovernment = corpus.parse('handel/hwv56/movement1-13.md')
-        forUntoUs = assembleLyrics(messiahGovernment)
-        self.assertTrue(forUntoUs.startswith('For unto us a child is born'))
-        forUntoUs = forUntoUs.replace('_', '')
-        self.assertEqual('en', ld.mostLikelyLanguage(forUntoUs))
+        ## TODO: Replace
+        #messiahGovernment = corpus.parse('handel/hwv56/movement1-13.md')
+        #forUntoUs = assembleLyrics(messiahGovernment)
+        #self.assertTrue(forUntoUs.startswith('For unto us a child is born'))
+        #forUntoUs = forUntoUs.replace('_', '')
+        #self.assertEqual('en', ld.mostLikelyLanguage(forUntoUs))
 
 
 #-------------------------------------------------------------------------------
