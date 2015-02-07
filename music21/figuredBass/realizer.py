@@ -563,8 +563,8 @@ class FiguredBassLine(object):
         if len(segmentList) >= 2 and len(bassLine.flat.notes) >= 2:
             for segmentIndex in range(len(segmentList) - 1):
                 segmentA = segmentList[segmentIndex]
-                if segmentA.segmentChord.isRest:
                 #!---------- Added code: if it's a rest, don't look for resolution and continue to next note/segment ----------!
+                if segmentA.segmentChord.isRest:
                     continue
                 #!---------- Added code: look for the following note/segment ----------!
                 i = 1
