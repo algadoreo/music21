@@ -802,11 +802,12 @@ class FiguredBassLine(object):
 
             try:
                 movementsAB
+            except:
+                pass
+            else:
                 for (possibA, possibBList) in movementsAB.items():
                     if len(possibBList) == 0:
                         del movementsAB[possibA]
-            except:
-                pass
                     
             segmentList.reverse()
             return True
@@ -979,7 +980,8 @@ class Realization(object):
                     possibA = random.sample(i.correctA, 1)[0]
                 except:
                     possibA = []
-                progression.append(possibA)
+                finally:
+                    progression.append(possibA)
             return progression
         
         if self.getNumSolutions() == 0:
@@ -1003,9 +1005,10 @@ class Realization(object):
                     currMovements = self._segmentList[segmentIndex].movements
                 except:
                     continue
-                nextPossib = random.sample(currMovements[prevPossib], 1)[0]
-                progression.append(nextPossib)
-                prevPossib = nextPossib
+                else:
+                    nextPossib = random.sample(currMovements[prevPossib], 1)[0]
+                    progression.append(nextPossib)
+                    prevPossib = nextPossib
 
         return progression
 
