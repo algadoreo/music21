@@ -179,6 +179,20 @@ def addLyricsToBassNote(bassNote, notationString = None):
             spacesInFront += ' '
         bassNote.addLyric(spacesInFront + fs, applyRaw = True)
 
+def _findNextNote(segmentList, segmentIndex):
+    '''
+    From the position segmentIndex, finds the next note-containing segment (as opposed to rests) in a segmentList.
+    This is necessary because rests don’t have resolutions or, in fact, anything to realize.
+
+    Can also be used to find the first note, in which case the call is `_findNextNote(segmentList, -1) - 1`
+
+    .. codeauthor:: Jason Leung, February 2015
+    '''
+    indicesUntilNextNote = 1
+    while segmentIndex + indicesUntilNextNote < len(segmentList) and segmentList[segmentIndex + indicesUntilNextNote].segmentChord.isRest:
+        indicesUntilNextNote += 1
+    return indicesUntilNextNote
+
 def _decorateSegment(rhChord, segmentQuarterLength = 1.0, decorationPattern = 0):
     '''
     Takes in a music21 chord.Chord() object and the segment duration in quarter lengths and returns
@@ -567,12 +581,11 @@ class FiguredBassLine(object):
                 if segmentA.segmentChord.isRest:
                     continue
                 #!---------- Added code: look for the following note/segment ----------!
-                i = 1
-                while segmentIndex + i < len(segmentList) and segmentList[segmentIndex + i].segmentChord.isRest:
-                    i += 1
-                if segmentIndex + i >= len(segmentList):
+                indicesUntilNextNote = _findNextNote(segmentList, segmentIndex)
+                if segmentIndex + indicesUntilNextNote >= len(segmentList):
                     break
-                segmentB = segmentList[segmentIndex + i]
+
+                segmentB = segmentList[segmentIndex + indicesUntilNextNote]
                 correctAB = segmentA.allCorrectConsecutivePossibilities(segmentB)
                 segmentA.movements = collections.defaultdict(list)
                 listAB = list(correctAB)
@@ -781,12 +794,11 @@ class FiguredBassLine(object):
                 #!---------- Added code: check for rests ----------!
                 if segmentList[segmentIndex].segmentChord.isRest:
                     continue
-                i = 1
-                while segmentIndex + i < len(segmentList) and segmentList[segmentIndex + i].segmentChord.isRest:
-                    i += 1
-                if segmentIndex + i >= len(segmentList):
+                indicesUntilNextNote = _findNextNote(segmentList, segmentIndex)
+                if segmentIndex + indicesUntilNextNote >= len(segmentList):
                     break
-                movementsAB = segmentList[segmentIndex + i].movements
+
+                movementsAB = segmentList[segmentIndex + indicesUntilNextNote].movements
                 #!---------- Last note (first on this reversed list) rests doesn't have 'movements' attribute ----------!
                 try:
                     #!---------- Original code below ----------!
@@ -920,21 +932,15 @@ class Realization(object):
             return progressions
         elif len(self._bassLine.flat.notes) == 1:
             #!---------- If there is only one note, find its location (index) ----------!
-            noteIndex = 0
-            while noteIndex < len(self._segmentList) and self._segmentList[noteIndex].segmentChord.isRest:
-                noteIndex += 1
+            noteIndex = _findNextNote(self._segmentList, -1) - 1
             for possibA in self._segmentList[noteIndex].correctA:
                 prog = [()]*noteIndex + [possibA]
                 progressions.append(prog)
             return progressions
         
         #!---------- Find first note (in case of rests at beginning) ----------!
-        firstNoteIndex = 0
-        while firstNoteIndex < len(self._segmentList) and self._segmentList[firstNoteIndex].segmentChord.isRest:
-            firstNoteIndex += 1
-        indicesUntilSecondNote = 1
-        while (firstNoteIndex + indicesUntilSecondNote) < len(self._segmentList) and self._segmentList[firstNoteIndex + indicesUntilSecondNote].segmentChord.isRest:
-            indicesUntilSecondNote += 1
+        firstNoteIndex = _findNextNote(self._segmentList, -1) - 1
+        indicesUntilSecondNote = _findNextNote(self._segmentList, firstNoteIndex)
 
         currMovements = self._segmentList[firstNoteIndex].movements
         for possibA in currMovements:
@@ -945,9 +951,7 @@ class Realization(object):
                 progressions.append(prog)
 
         for segmentIndex in range(firstNoteIndex+indicesUntilSecondNote, len(self._segmentList)-1):
-            indicesUntilNextNote = 1
-            while (segmentIndex + indicesUntilNextNote) < len(self._segmentList) and self._segmentList[segmentIndex + indicesUntilNextNote].segmentChord.isRest:
-                indicesUntilNextNote += 1
+            indicesUntilNextNote = _findNextNote(self._segmentList, segmentIndex)
             try:
                 currMovements = self._segmentList[segmentIndex].movements
             except:
@@ -987,16 +991,14 @@ class Realization(object):
         if self.getNumSolutions() == 0:
             raise FiguredBassLineException("Zero solutions")
         #!---------- Find first note (in case of rests at beginning) ----------!
-        i = 0
-        while i < len(self._segmentList) and self._segmentList[i].segmentChord.isRest:
-            prevPossib = []
-            progression.append(prevPossib)
-            i += 1
-        currMovements = self._segmentList[i].movements
+        firstNoteIndex = _findNextNote(self._segmentList, -1) - 1
+        progression.extend([[]]*firstNoteIndex)
+
+        currMovements = self._segmentList[firstNoteIndex].movements
         prevPossib = random.sample(currMovements.keys(), 1)[0]
         progression.append(prevPossib)
         
-        for segmentIndex in range(i, len(self._segmentList)-1):
+        for segmentIndex in range(firstNoteIndex, len(self._segmentList)-1):
             if self._segmentList[segmentIndex].segmentChord.isRest:
                 progression.append(prevPossib)
             else:
