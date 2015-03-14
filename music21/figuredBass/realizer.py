@@ -654,7 +654,7 @@ class FiguredBassLine(object):
                     chordToCheck.removeRedundantPitchNames()
                     ''' Chord checks '''
                     if chordToCheck.isTriad():
-                        editMode = (chordToCheck.quality == 'other')
+                        editChord = (chordToCheck.quality == 'other')
                     elif chordToCheck.isSeventh():
                         isDominantSeventh = chordToCheck.isDominantSeventh()
                         isDiminishedSeventh = chordToCheck.isDiminishedSeventh()
@@ -662,18 +662,18 @@ class FiguredBassLine(object):
                         isHalfDiminishedSeventh = chordToCheck.isHalfDiminishedSeventh()
                         isMajorSeventh = chordToCheck.isMajorSeventh()
                         isMinorSeventh = chordToCheck.isMinorSeventh()
-                        editMode = not (isDominantSeventh or isDiminishedSeventh or isHalfDiminishedSeventh or isMajorSeventh or isMinorSeventh)
+                        editChord = not (isDominantSeventh or isDiminishedSeventh or isHalfDiminishedSeventh or isMajorSeventh or isMinorSeventh)
                     elif chordToCheck.isIncompleteSeventh():
                         isIncompleteDominantSeventh = chordToCheck.isIncompleteDominantSeventh()
                         isIncompleteDiminishedSeventh = chordToCheck.isIncompleteDiminishedSeventh()
                         # isIncompleteHalfDiminishedSeventh = chordToCheck.isIncompleteHalfDiminishedSeventh() # Is the same as an incomplete minor 7th
                         isIncompleteMajorSeventh = chordToCheck.isIncompleteMajorSeventh()
                         isIncompleteMinorSeventh = chordToCheck.isIncompleteMinorSeventh()
-                        editMode = not (isIncompleteDominantSeventh or isIncompleteDiminishedSeventh or isIncompleteMajorSeventh or isIncompleteMinorSeventh)
+                        editChord = not (isIncompleteDominantSeventh or isIncompleteDiminishedSeventh or isIncompleteMajorSeventh or isIncompleteMinorSeventh)
                     else:
-                        editMode = not (chordToCheck.isAugmentedSixth() or chordToCheck.isSusFour() or chordToCheck.isAddNine())
+                        editChord = not (chordToCheck.isAugmentedSixth() or chordToCheck.isSusFour() or chordToCheck.isAddNine())
                     
-                    if editMode:
+                    if editChord:
                         print("Unknown chord in measure " + str(currentMeasure) + ", beat " + str(currentBeat) + ":")
                         print(", ".join(str(p) for p in segmentList[segmentIndex].pitchNamesInChord)\
                               + " corresponding to the figure " + "".join(str(p) for p in segmentList[segmentIndex].bassNote.notationString))
