@@ -610,7 +610,7 @@ class FiguredBassLine(object):
                            inTime = self.inTime, overlayedParts = self._overlayedParts[0:-1],
                            paddingLeft = self._paddingLeft, bassLine = bassLine)
 
-    def proofreadSegments(self):
+    def proofreadSegments(self, outputFileName = None):
         '''
         After creating the :class:`~music21.figuredBass.realizer.FiguredBassLine`, this method can be called to proofreads
         the segment list for mislabeled chords. Checks whether the realized chord is a known type:
@@ -621,6 +621,9 @@ class FiguredBassLine(object):
 
         If the chord is not recognized, it is presented to the user for revision.
 
+        Exports the corrections to a text file that could be imported using the :meth:`~music21.figuredBass.realizer.FiguredBassLine.importCorrections`.
+        Output text format: offset segmentIndex fbIndex notationString
+
         .. codeauthor:: Added by Jason Leung, October 2014
         '''
         (unused_bassLine, segmentList) = self.retrieveSegments()
@@ -629,6 +632,12 @@ class FiguredBassLine(object):
             keySigAccidentalDict[p.step] = p.alter
         beatsToAMeasure = self.inTime.numerator
         previousMeasure = 0
+
+        # Create output file to store corrections
+        if outputFileName is None:
+            textOut = open('fbCorrections.txt', 'w')
+        else:
+            textOut = open(str(outputFileName), 'w')
 
         ''' There are two lists to iterate over simultaneously, segmentList and self._fbList, whose indices don't line up.
         This means that we need two separate indices; since self._fbList is the longer list, we will use its index as the
@@ -690,6 +699,9 @@ class FiguredBassLine(object):
                             self._fbList[fbIndex] = (replacementSegment.bassNote, newNotationString)
                             print("Chord revised as: " + ", ".join(str(p) for p in replacementSegment.pitchNamesInChord))
 
+                            # textOut.write(str(segmentList[segmentIndex].bassNote.offset) + " " + segmentIndex + " " + fbIndex + " " + newNotationString + "\n")
+                            textOut.write(" ".join(str(x) for x in [segmentList[segmentIndex].bassNote.offset, segmentIndex, fbIndex, newNotationString]) + "\n")
+
                             chordToCheck = copy.deepcopy(replacementSegment.segmentChord)
                             chordToCheck.removeRedundantPitchNames()
                         else:
@@ -715,6 +727,8 @@ class FiguredBassLine(object):
                                 segmentList[segmentIndex].bassNote.notationString = newNotationString
                                 self._fbList[fbIndex] = (replacementSegment.bassNote, newNotationString)
                                 print("Chord revised as: " + ", ".join(str(p) for p in replacementSegment.pitchNamesInChord))
+
+                                textOut.write(" ".join(str(x) for x in [segmentList[segmentIndex].bassNote.offset, segmentIndex, fbIndex, newNotationString]) + "\n")
                             else:
                                 print("No revision made to this chord")
                             print("----------")
@@ -723,6 +737,39 @@ class FiguredBassLine(object):
                 segmentIndex += 1
 
         print("Proofreading complete")
+        textOut.close()
+
+    def importCorrections(self, inputFileName = None):
+        '''
+        Imports a text file with figured bass corrections created usingthe :meth:`~music21.figuredBass.realizer.FiguredBassLine.proofreadSegments`.
+        Input text format: offset segmentIndex fbIndex notationString
+
+        .. codeauthor:: Jason Leung, March 2015
+        '''
+        if inputFileName is None:
+            inputFileName = raw_input("FB Corrections file: ")
+        
+        try:
+            textIn = open(inputFileName, 'r')
+        except IOError:
+            pass
+
+        (unused_bassLine, segmentList) = self.retrieveSegments()
+
+        for line in textIn:
+            splitLine = line.rstrip("\n").split(" ", 3)
+            # offset = int(splitLine[0])
+            segmentIndex = int(splitLine[1])
+            fbIndex = int(splitLine[2])
+            newNotationString = splitLine[3]
+
+            replacementSegment = segment.OverlayedSegment(segmentList[segmentIndex].bassNote, newNotationString, self._fbScale)
+            replacementSegment.quarterLength = segmentList[segmentIndex].quarterLength
+            segmentList[segmentIndex] = replacementSegment
+            segmentList[segmentIndex].bassNote.notationString = newNotationString
+            self._fbList[fbIndex] = (replacementSegment.bassNote, newNotationString)
+
+        textIn.close()
 
     def generateRandomRealization(self):         
         '''
