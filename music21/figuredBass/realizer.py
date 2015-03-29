@@ -852,10 +852,22 @@ class FiguredBassLine(object):
                     movementsBC = segmentList[segmentIndex].movements
                 except:
                     continue
-                #eliminated = []
+                
+                segmentKeys = movementsBC.keys()
+                deletedPossibs_count = 0
                 for (possibB, possibCList) in list(movementsBC.items()):
                     if len(possibCList) == 0:
                         del movementsBC[possibB]
+                        deletedPossibs_count += 1
+                if deletedPossibs_count == len(segmentKeys):
+                    print("There are 0 possibilities onward from the chord at offset " + str(segmentList[segmentIndex].bassNote.offset) + ". Generating random progression in its place.")
+                    # ''' Generates a single random progression '''
+                    # movementsBC[random.choice(random.choice(movementsAB.values()))] = [random.choice(prev_segmentKeys)]
+                    ''' Generates all progressions '''
+                    for key in segmentKeys:
+                        movementsBC[key] = prev_segmentKeys
+                prev_segmentKeys = movementsBC.keys()
+
                 for (possibA, possibBList) in list(movementsAB.items()):
                     movementsAB[possibA] = list(ifilter(lambda possibB: possibB in movementsBC, possibBList))
 
