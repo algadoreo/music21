@@ -44,7 +44,7 @@ import collections
 import copy
 import random
 import unittest
-
+import sys
 
 from music21 import chord
 from music21 import clef
@@ -576,6 +576,10 @@ class FiguredBassLine(object):
 
         if len(segmentList) >= 2 and len(bassLine.flat.notes) >= 2:
             for segmentIndex in range(len(segmentList) - 1):
+                # Print progress on interactive prompt (i.e., the screen)
+                sys.stdout.write("\rRealizing {0} of {1} segments. ".format(segmentIndex+1, len(segmentList)))
+                sys.stdout.flush()
+
                 segmentA = segmentList[segmentIndex]
                 #!---------- Added code: if it's a rest, don't look for resolution and continue to next note/segment ----------!
                 if segmentA.segmentChord.isRest:
@@ -591,6 +595,8 @@ class FiguredBassLine(object):
                 listAB = list(correctAB)
                 for (possibA, possibB) in listAB:
                     segmentA.movements[possibA].append(possibB)
+            sys.stdout.write("\rRealizations complete. Finalizing... \n")
+            sys.stdout.flush()
             self._trimAllMovements(segmentList)
         elif len(segmentList) == 1:
             segmentA = segmentList[0]
